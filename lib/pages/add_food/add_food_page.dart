@@ -52,11 +52,18 @@ class _AddFoodPageState extends State<AddFoodPage>
       length: 2,
       vsync: this,
       initialIndex: _initialTabIndex,
-    );
+    )..addListener(_handleTabChanged);
+  }
+
+  /// The hidden form would otherwise keep the keyboard and cursor attached to
+  /// an input the user can no longer see.
+  void _handleTabChanged() {
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
     super.dispose();
   }
