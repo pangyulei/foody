@@ -1,11 +1,7 @@
-import 'package:objectbox/objectbox.dart';
-
 import 'food.dart';
 
 /// 包装食品：带有营养成分表、按“基准份量”标注营养数值的食物。
-@Entity()
 class PremadeFood implements Food {
-  @Id()
   @override
   int id;
 
@@ -38,7 +34,6 @@ class PremadeFood implements Food {
   String unitName;
 
   @override
-  @Property(type: PropertyType.date)
   DateTime lastUsedTime;
 
   PremadeFood({

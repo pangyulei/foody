@@ -24,13 +24,13 @@ class FoodBloc extends Bloc<FoodEvent, FoodState> {
       ? (state as FoodLoaded).selectedDate
       : _day(DateTime.now());
 
-  FoodLoaded _buildState(DateTime selectedDate) {
+  Future<FoodLoaded> _buildState(DateTime selectedDate) async {
     final today = _day(DateTime.now());
     final selected = _day(selectedDate);
-    final selectedLogs = repository.getDietLogsForDate(selected);
+    final selectedLogs = await repository.getDietLogsForDate(selected);
     final todayLogs = _sameDay(selected, today)
         ? selectedLogs
-        : repository.getDietLogsForDate(today);
+        : await repository.getDietLogsForDate(today);
     return FoodLoaded(
       todayLogs: todayLogs,
       selectedLogs: selectedLogs,
@@ -38,45 +38,54 @@ class FoodBloc extends Bloc<FoodEvent, FoodState> {
     );
   }
 
-  void _onLoadDietLogs(LoadDietLogs event, Emitter<FoodState> emit) {
+  Future<void> _onLoadDietLogs(
+    LoadDietLogs event,
+    Emitter<FoodState> emit,
+  ) async {
     emit(FoodLoading());
     try {
-      emit(_buildState(event.selectedDate ?? DateTime.now()));
+      emit(await _buildState(event.selectedDate ?? DateTime.now()));
     } catch (e) {
       emit(FoodError(e.toString()));
     }
   }
 
-  void _onSelectDate(SelectDate event, Emitter<FoodState> emit) {
+  Future<void> _onSelectDate(SelectDate event, Emitter<FoodState> emit) async {
     try {
-      emit(_buildState(event.selectedDate));
+      emit(await _buildState(event.selectedDate));
     } catch (e) {
       emit(FoodError(e.toString()));
     }
   }
 
-  void _onAddDietLog(AddDietLog event, Emitter<FoodState> emit) {
+  Future<void> _onAddDietLog(AddDietLog event, Emitter<FoodState> emit) async {
     try {
-      repository.saveDietLog(event.log);
-      emit(_buildState(_currentSelectedDate));
+      await repository.saveDietLog(event.log);
+      emit(await _buildState(_currentSelectedDate));
     } catch (e) {
       emit(FoodError(e.toString()));
     }
   }
 
-  void _onUpdateDietLog(UpdateDietLog event, Emitter<FoodState> emit) {
+  Future<void> _onUpdateDietLog(
+    UpdateDietLog event,
+    Emitter<FoodState> emit,
+  ) async {
     try {
-      repository.saveDietLog(event.log);
-      emit(_buildState(_currentSelectedDate));
+      await repository.saveDietLog(event.log);
+      emit(await _buildState(_currentSelectedDate));
     } catch (e) {
       emit(FoodError(e.toString()));
     }
   }
 
-  void _onDeleteDietLog(DeleteDietLog event, Emitter<FoodState> emit) {
+  Future<void> _onDeleteDietLog(
+    DeleteDietLog event,
+    Emitter<FoodState> emit,
+  ) async {
     try {
-      repository.deleteDietLog(event.id);
-      emit(_buildState(_currentSelectedDate));
+      await repository.deleteDietLog(event.id);
+      emit(await _buildState(_currentSelectedDate));
     } catch (e) {
       emit(FoodError(e.toString()));
     }

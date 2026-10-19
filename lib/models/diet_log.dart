@@ -1,30 +1,27 @@
-import 'package:objectbox/objectbox.dart';
-
 import '../utils/energy_converter.dart';
 import 'custom_food.dart';
 import 'food.dart';
 import 'premade_food.dart';
 
 /// 一次进食记录：引用某个纯食物，加上数量、时间等信息。
-@Entity()
 class DietLog {
-  @Id()
   int id;
 
-  final premadeFood = ToOne<PremadeFood>();
+  PremadeFood? premadeFood;
 
-  final customFood = ToOne<CustomFood>();
+  CustomFood? customFood;
 
   /// 食用数量（份数）
   double quantity;
 
-  @Property(type: PropertyType.date)
   DateTime createTime;
 
   String? note;
 
   DietLog({
     this.id = 0,
+    this.premadeFood,
+    this.customFood,
     this.quantity = 1.0,
     required this.createTime,
     this.note,
@@ -49,19 +46,11 @@ class DietLog {
   }
 
   /// 当前引用的纯食物（包装食品或自定义食品）
-  Food? get food => premadeFood.target ?? customFood.target;
+  Food? get food => premadeFood ?? customFood;
 
   void setFood(Food? food) {
-    if (food is PremadeFood) {
-      premadeFood.target = food;
-      customFood.target = null;
-    } else if (food is CustomFood) {
-      customFood.target = food;
-      premadeFood.target = null;
-    } else {
-      premadeFood.target = null;
-      customFood.target = null;
-    }
+    premadeFood = food is PremadeFood ? food : null;
+    customFood = food is CustomFood ? food : null;
   }
 
   /// 本次摄入能量 (kJ)

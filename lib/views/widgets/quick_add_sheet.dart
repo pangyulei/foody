@@ -13,14 +13,9 @@ import '../../utils/energy_converter.dart';
 /// 弹出历史食物快速记录面板。
 void showQuickAddSheet(BuildContext context, DateTime targetDate) {
   final foodRepository = context.read<FoodRepository>();
-  final recentFoods = foodRepository.getRecentFoods(limit: 20);
+  final foodsFuture = foodRepository.getRecentFoods(limit: 20);
   final t = AppStrings.of(context);
   final messenger = ScaffoldMessenger.of(context);
-
-  if (recentFoods.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(t.noRecentFoods)));
-    return;
-  }
 
   showModalBottomSheet(
     context: context,
@@ -79,22 +74,46 @@ void showQuickAddSheet(BuildContext context, DateTime targetDate) {
                 ),
                 const Divider(height: 20),
                 Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    itemCount: recentFoods.length,
-                    itemBuilder: (ctx, index) {
-                      final food = recentFoods[index];
-                      return _QuickAddFoodTile(
-                        food: food,
-                        targetDate: targetDate,
-                        strings: t,
-                        onAdded: () {
-                          Navigator.of(bottomSheetContext).pop();
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(t.quickAdded(food.name)),
-                              duration: const Duration(seconds: 2),
+                  child: FutureBuilder<List<Food>>(
+                    future: foodsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final recentFoods = snapshot.data ?? const <Food>[];
+                      if (recentFoods.isEmpty) {
+                        return Center(
+                          child: Text(
+                            t.noRecentFoods,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        controller: scrollController,
+                        itemCount: recentFoods.length,
+                        itemBuilder: (ctx, index) {
+                          final food = recentFoods[index];
+                          return _QuickAddFoodTile(
+                            food: food,
+                            targetDate: targetDate,
+                            strings: t,
+                            onAdded: () {
+                              Navigator.of(bottomSheetContext).pop();
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(t.quickAdded(food.name)),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
                           );
                         },
                       );

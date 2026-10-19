@@ -8,16 +8,16 @@ import 'bloc/settings_cubit.dart';
 import 'l10n/app_strings.dart';
 import 'models/app_settings.dart';
 import 'repositories/food_repository.dart';
-import 'services/objectbox_service.dart';
+import 'services/app_database.dart';
 import 'services/settings_service.dart';
 import 'views/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 初始化 ObjectBox 数据库
-  final objectBoxService = await ObjectBoxService.create();
-  final foodRepository = FoodRepository(objectBoxService);
+  // 初始化 Drift/SQLite 数据库
+  final database = AppDatabase.defaults();
+  final foodRepository = FoodRepository(database);
 
   // 读取本地设置
   final settingsService = await SettingsService.create();

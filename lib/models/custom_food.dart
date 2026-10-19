@@ -1,12 +1,8 @@
-import 'package:objectbox/objectbox.dart';
-
 import 'food.dart';
 
 /// 用户自定义食品：例如一盘菜、一个鸡蛋。
 /// 营养数值按一份记录。
-@Entity()
 class CustomFood implements Food {
-  @Id()
   @override
   int id;
 
@@ -30,7 +26,6 @@ class CustomFood implements Food {
   double fat;
 
   @override
-  @Property(type: PropertyType.date)
   DateTime lastUsedTime;
 
   CustomFood({

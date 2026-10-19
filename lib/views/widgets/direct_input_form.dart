@@ -5,7 +5,7 @@ import '../../l10n/app_strings.dart';
 import '../../models/custom_food.dart';
 import '../../models/diet_log.dart';
 import '../../models/food.dart';
-import '../../utils/energy_converter.dart';
+import 'nutrition_preview_card.dart';
 import 'quick_food_selector.dart';
 
 class DirectInputForm extends StatefulWidget {
@@ -176,9 +176,14 @@ class _DirectInputFormState extends State<DirectInputForm> {
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
     final unitKj = double.tryParse(_kjController.text.trim()) ?? 0.0;
+    final unitCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
+    final unitProtein = double.tryParse(_proteinController.text.trim()) ?? 0.0;
+    final unitFat = double.tryParse(_fatController.text.trim()) ?? 0.0;
     final quantity = double.tryParse(_quantityController.text.trim()) ?? 1.0;
     final totalKj = unitKj * quantity;
-    final totalKcal = EnergyConverter.kjToKcal(totalKj);
+    final totalCarbs = unitCarbs * quantity;
+    final totalProtein = unitProtein * quantity;
+    final totalFat = unitFat * quantity;
 
     return Form(
       key: _formKey,
@@ -261,73 +266,106 @@ class _DirectInputFormState extends State<DirectInputForm> {
           ),
           const SizedBox(height: 16),
 
-          // 1. 能量 (单份，独立占满一行)
-          TextFormField(
-            controller: _kjController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: t.energyKj,
-              hintText: t.energyPerServingHint,
-              prefixIcon: const Icon(Icons.local_fire_department_outlined),
-              suffixText: 'kJ',
-              border: const OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return t.requiredEnergy;
-              }
-              if (double.tryParse(value.trim()) == null) {
-                return t.invalidNumber;
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 8),
-
-          // 预览卡路里换算
+          // 营养成分数值 (每份)
           Card(
-            color: Theme.of(context).colorScheme.primaryContainer
-                .withAlpha(150),
             elevation: 0,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.local_fire_department,
-                    color: Theme.of(context).colorScheme.primary,
+                  Text(
+                    t.directNutritionSection,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          quantity > 1
-                              ? t.caloriesSubtotal(
-                                  EnergyConverter.kjToKcal(unitKj)
-                                      .toStringAsFixed(1),
-                                  quantity.toString(),
-                                )
-                              : t.convertedCalories,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${totalKcal.toStringAsFixed(1)} kcal',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 4),
+                  Text(
+                    t.directNutritionSubtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 能量
+                  TextFormField(
+                    controller: _kjController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: t.energyKj,
+                      hintText: t.energyPerServingHint,
+                      prefixIcon: const Icon(
+                        Icons.local_fire_department_outlined,
+                      ),
+                      suffixText: 'kJ',
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return t.requiredEnergy;
+                      }
+                      if (double.tryParse(value.trim()) == null) {
+                        return t.invalidNumber;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 碳水化合物
+                  TextFormField(
+                    controller: _carbsController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: t.carbsLabel,
+                      hintText: t.carbsHint,
+                      prefixIcon: const Icon(Icons.grain),
+                      suffixText: 'g',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 蛋白质
+                  TextFormField(
+                    controller: _proteinController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: t.proteinLabel,
+                      hintText: t.proteinHint,
+                      prefixIcon: const Icon(Icons.fitness_center),
+                      suffixText: 'g',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 脂肪
+                  TextFormField(
+                    controller: _fatController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: t.fatLabel,
+                      hintText: t.fatHint,
+                      prefixIcon: const Icon(Icons.opacity),
+                      suffixText: 'g',
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ],
@@ -336,45 +374,14 @@ class _DirectInputFormState extends State<DirectInputForm> {
           ),
           const SizedBox(height: 16),
 
-          // 2. 碳水化合物 (独立占满一行)
-          TextFormField(
-            controller: _carbsController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: t.carbsLabel,
-              hintText: t.carbsHint,
-              prefixIcon: const Icon(Icons.grain),
-              suffixText: 'g',
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 3. 蛋白质 (独立占满一行)
-          TextFormField(
-            controller: _proteinController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: t.proteinLabel,
-              hintText: t.proteinHint,
-              prefixIcon: const Icon(Icons.fitness_center),
-              suffixText: 'g',
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 4. 脂肪 (独立占满一行)
-          TextFormField(
-            controller: _fatController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: t.fatLabel,
-              hintText: t.fatHint,
-              prefixIcon: const Icon(Icons.opacity),
-              suffixText: 'g',
-              border: const OutlineInputBorder(),
-            ),
+          // 底部实际摄入总量预览
+          NutritionPreviewCard(
+            title: t.calculatedIntakeTitle,
+            subtitle: t.directCalculatedIntakeSubtitle(_formatNumber(quantity)),
+            totalKj: totalKj,
+            totalCarbs: totalCarbs,
+            totalProtein: totalProtein,
+            totalFat: totalFat,
           ),
           const SizedBox(height: 16),
 

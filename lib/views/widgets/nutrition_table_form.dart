@@ -5,7 +5,7 @@ import '../../l10n/app_strings.dart';
 import '../../models/diet_log.dart';
 import '../../models/food.dart';
 import '../../models/premade_food.dart';
-import '../../utils/energy_converter.dart';
+import 'nutrition_preview_card.dart';
 import 'quick_food_selector.dart';
 
 class NutritionTableForm extends StatefulWidget {
@@ -251,7 +251,6 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     final rawKj = double.tryParse(_kjController.text.trim()) ?? 0.0;
 
     final calculatedKj = rawKj * multiplier;
-    final calculatedKcal = EnergyConverter.kjToKcal(calculatedKj);
     final calculatedCarbs = rawCarbs * multiplier;
     final calculatedProtein = rawProtein * multiplier;
     final calculatedFat = rawFat * multiplier;
@@ -349,34 +348,30 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        t.servingSection,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SegmentedButton<String>(
-                        segments: [
-                          ButtonSegment(value: 'ml', label: Text(t.unitMl)),
-                          ButtonSegment(value: 'g', label: Text(t.unitG)),
-                          ButtonSegment(value: '份', label: Text(t.unitServing)),
-                        ],
-                        selected: {_unitName},
-                        onSelectionChanged: (set) {
-                          setState(() {
-                            _unitName = set.first;
-                          });
-                        },
-                        style: const ButtonStyle(
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
+                  Text(
+                    t.servingSection,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment(value: 'ml', label: Text(t.unitMl)),
+                      ButtonSegment(value: 'g', label: Text(t.unitG)),
+                      ButtonSegment(value: '份', label: Text(t.unitServing)),
                     ],
+                    selected: {_unitName},
+                    onSelectionChanged: (set) {
+                      setState(() {
+                        _unitName = set.first;
+                      });
+                    },
+                    style: const ButtonStyle(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -449,15 +444,23 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    t.nutritionValuesTitle(
+                    t.nutritionValuesTitle,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    t.nutritionValuesSubtitle(
                       _unitAmountController.text.isEmpty
                           ? '100'
                           : _unitAmountController.text,
                       unitLabel,
                     ),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -541,102 +544,18 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           ),
           const SizedBox(height: 16),
 
-          // 实时换算预览卡片
-          Card(
-            color: Theme.of(context).colorScheme.primaryContainer
-                .withAlpha(180),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+          // 底部实际摄入总量预览
+          NutritionPreviewCard(
+            title: t.calculatedIntakeTitle,
+            subtitle: t.calculatedIntakeSubtitle(
+              totalConsumedAmount.toStringAsFixed(0),
+              unitLabel,
+              multiplier.toStringAsFixed(2),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.analytics_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        t.autoConvertTitle(
-                          totalConsumedAmount.toStringAsFixed(0),
-                          unitLabel,
-                          multiplier.toStringAsFixed(2),
-                        ),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        t.intakeCalories,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      Text(
-                        '${calculatedKcal.toStringAsFixed(1)} kcal',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 12,
-                    children: [
-                      Chip(
-                        avatar: CircleAvatar(
-                          child: Text(
-                            t.shortCarbs.substring(0, 1),
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                        ),
-                        label: Text(
-                          '${t.shortCarbs}: ${calculatedCarbs.toStringAsFixed(1)}g',
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      Chip(
-                        avatar: CircleAvatar(
-                          child: Text(
-                            t.shortProtein.substring(0, 1),
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                        ),
-                        label: Text(
-                          '${t.shortProtein}: ${calculatedProtein.toStringAsFixed(1)}g',
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      Chip(
-                        avatar: CircleAvatar(
-                          child: Text(
-                            t.shortFat.substring(0, 1),
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                        ),
-                        label: Text(
-                          '${t.shortFat}: ${calculatedFat.toStringAsFixed(1)}g',
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            totalKj: calculatedKj,
+            totalCarbs: calculatedCarbs,
+            totalProtein: calculatedProtein,
+            totalFat: calculatedFat,
           ),
           const SizedBox(height: 16),
 

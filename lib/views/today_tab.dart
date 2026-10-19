@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 
 import '../bloc/food_bloc.dart';
 import '../bloc/food_event.dart';
@@ -47,32 +46,6 @@ class TodayTab extends StatelessWidget {
 
             return CustomScrollView(
               slivers: [
-                // 今天日期
-                SliverToBoxAdapter(
-                  child: Container(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest
-                        .withAlpha(128),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.today, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          t.todayWithDate(DateFormat('yyyy-MM-dd').format(now)),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
                 // 今日统计
                 SliverToBoxAdapter(
                   child: Padding(

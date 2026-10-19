@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foood/extensions/diet_log_extensions.dart';
-import 'package:foood/models/app_settings.dart';
-import 'package:foood/models/custom_food.dart';
-import 'package:foood/models/diet_log.dart';
-import 'package:foood/models/food.dart';
-import 'package:foood/models/premade_food.dart';
-import 'package:foood/utils/energy_converter.dart';
+import 'package:foody/extensions/diet_log_extensions.dart';
+import 'package:foody/models/app_settings.dart';
+import 'package:foody/models/custom_food.dart';
+import 'package:foody/models/diet_log.dart';
+import 'package:foody/models/food.dart';
+import 'package:foody/models/premade_food.dart';
+import 'package:foody/utils/energy_converter.dart';
 
 void main() {
   group('EnergyConverter Tests', () {
@@ -56,12 +56,7 @@ void main() {
 
   group('AppSettings goals', () {
     test('targets are body weight multiplied by factor', () {
-      const settings = AppSettings(
-        weightKg: 70,
-        carbsFactor: 3,
-        proteinFactor: 1.5,
-        fatFactor: 1,
-      );
+      const settings = AppSettings(weightKg: 70, carbsFactor: 3, proteinFactor: 1.5, fatFactor: 1);
 
       expect(settings.hasGoals, isTrue);
       expect(settings.targetCarbs, 210);
@@ -78,18 +73,8 @@ void main() {
 
   group('DietLog statistics', () {
     test('DietLog multiplies food nutrition by quantity', () {
-      final food = CustomFood(
-        name: 'A',
-        kj: 100,
-        carbs: 10,
-        protein: 5,
-        fat: 2,
-      );
-      final log = DietLog.withFood(
-        food: food,
-        quantity: 2,
-        createTime: DateTime.now(),
-      );
+      final food = CustomFood(name: 'A', kj: 100, carbs: 10, protein: 5, fat: 2);
+      final log = DietLog.withFood(food: food, quantity: 2, createTime: DateTime.now());
 
       expect(log.food, same(food));
       expect(log.kj, 200);
@@ -109,44 +94,20 @@ void main() {
         basisAmount: 100,
         unitName: 'ml',
       );
-      final custom = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
+      final custom = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
 
-      final premadeLog = DietLog.withFood(
-        food: premade,
-        createTime: DateTime.now(),
-      );
+      final premadeLog = DietLog.withFood(food: premade, createTime: DateTime.now());
       expect(premadeLog.food, same(premade));
 
       premadeLog.setFood(custom);
       expect(premadeLog.food, same(custom));
 
-      expect(
-        DietLog.withFood(food: custom, createTime: DateTime.now()).food,
-        same(custom),
-      );
+      expect(DietLog.withFood(food: custom, createTime: DateTime.now()).food, same(custom));
     });
 
     test('List<DietLog> extension sums logs', () {
-      final foodA = CustomFood(
-        name: 'A',
-        kj: 100,
-        carbs: 10,
-        protein: 5,
-        fat: 2,
-      );
-      final foodB = PremadeFood(
-        name: 'B',
-        kj: 200,
-        carbs: 20,
-        protein: 10,
-        fat: 4,
-      );
+      final foodA = CustomFood(name: 'A', kj: 100, carbs: 10, protein: 5, fat: 2);
+      final foodB = PremadeFood(name: 'B', kj: 200, carbs: 20, protein: 10, fat: 4);
       final logs = [
         DietLog.withFood(food: foodA, quantity: 1, createTime: DateTime.now()),
         DietLog.withFood(food: foodB, quantity: 2, createTime: DateTime.now()),

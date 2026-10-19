@@ -170,157 +170,161 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     secondary: const Icon(Icons.speed),
                   ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _weightController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: t.bodyWeight,
-                            hintText: t.bodyWeightHint,
-                            suffixText: 'kg',
-                            prefixIcon: const Icon(
-                              Icons.monitor_weight_outlined,
+                  if (settings.goalsEnabled) ...[
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: _weightController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
                             ),
-                            border: const OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: t.bodyWeight,
+                              hintText: t.bodyWeightHint,
+                              suffixText: 'kg',
+                              prefixIcon: const Icon(
+                                Icons.monitor_weight_outlined,
+                              ),
+                              border: const OutlineInputBorder(),
+                            ),
+                            onChanged: (_) {
+                              cubit.setWeight(_parse(_weightController));
+                            },
                           ),
-                          onChanged: (_) {
-                            cubit.setWeight(_parse(_weightController));
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _carbsController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _carbsController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: t.carbsFactor,
+                              suffixText: 'g/kg',
+                              prefixIcon: const Icon(Icons.grain),
+                              border: const OutlineInputBorder(),
+                            ),
+                            onChanged: (_) {
+                              cubit.setCarbsFactor(_parse(_carbsController));
+                            },
                           ),
-                          decoration: InputDecoration(
-                            labelText: t.carbsFactor,
-                            suffixText: 'g/kg',
-                            prefixIcon: const Icon(Icons.grain),
-                            border: const OutlineInputBorder(),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _proteinController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: t.proteinFactor,
+                              suffixText: 'g/kg',
+                              prefixIcon: const Icon(Icons.fitness_center),
+                              border: const OutlineInputBorder(),
+                            ),
+                            onChanged: (_) {
+                              cubit.setProteinFactor(
+                                _parse(_proteinController),
+                              );
+                            },
                           ),
-                          onChanged: (_) {
-                            cubit.setCarbsFactor(_parse(_carbsController));
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _proteinController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _fatController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: t.fatFactor,
+                              suffixText: 'g/kg',
+                              prefixIcon: const Icon(Icons.opacity),
+                              border: const OutlineInputBorder(),
+                            ),
+                            onChanged: (_) {
+                              cubit.setFatFactor(_parse(_fatController));
+                            },
                           ),
-                          decoration: InputDecoration(
-                            labelText: t.proteinFactor,
-                            suffixText: 'g/kg',
-                            prefixIcon: const Icon(Icons.fitness_center),
-                            border: const OutlineInputBorder(),
+                          const SizedBox(height: 12),
+                          Text(
+                            t.goalsHint,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
                           ),
-                          onChanged: (_) {
-                            cubit.setProteinFactor(_parse(_proteinController));
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _fatController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: t.fatFactor,
-                            suffixText: 'g/kg',
-                            prefixIcon: const Icon(Icons.opacity),
-                            border: const OutlineInputBorder(),
-                          ),
-                          onChanged: (_) {
-                            cubit.setFatFactor(_parse(_fatController));
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          t.goalsHint,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                                .withAlpha(150),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.flag,
-                                    size: 18,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primary,
-                                  ),
-                                  const SizedBox(width: 6),
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer
+                                  .withAlpha(150),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.flag,
+                                      size: 18,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      t.dailyTargets,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                if (hasWeight) ...[
                                   Text(
-                                    t.dailyTargets,
+                                    t.targetsLine(
+                                      settings.targetCarbs,
+                                      settings.targetProtein,
+                                      settings.targetFat,
+                                    ),
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              if (hasWeight) ...[
-                                Text(
-                                  t.targetsLine(
-                                    settings.targetCarbs,
-                                    settings.targetProtein,
-                                    settings.targetFat,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    t.approxKcal(settings.targetKcal),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
                                   ),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
+                                ] else
+                                  Text(
+                                    t.goalsNotSet,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  t.approxKcal(settings.targetKcal),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
-                                ),
-                              ] else
-                                Text(
-                                  t.goalsNotSet,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

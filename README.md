@@ -1,4 +1,4 @@
-# foood
+# foody
 
 A new Flutter project.
 

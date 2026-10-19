@@ -6,21 +6,44 @@ import '../../models/food.dart';
 import '../../repositories/food_repository.dart';
 import '../../utils/energy_converter.dart';
 
-class QuickFoodSelector extends StatelessWidget {
+class QuickFoodSelector extends StatefulWidget {
   final Function(Food food) onFoodSelected;
 
   const QuickFoodSelector({super.key, required this.onFoodSelected});
 
   @override
+  State<QuickFoodSelector> createState() => _QuickFoodSelectorState();
+}
+
+class _QuickFoodSelectorState extends State<QuickFoodSelector> {
+  Future<List<Food>>? _foodsFuture;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _foodsFuture ??= RepositoryProvider.of<FoodRepository>(context)
+        .getRecentFoods(limit: 15);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final foodsFuture = _foodsFuture;
+    if (foodsFuture == null) return const SizedBox.shrink();
+
+    return FutureBuilder<List<Food>>(
+      future: foodsFuture,
+      builder: (context, snapshot) {
+        final recentFoods = snapshot.data;
+        if (recentFoods == null || recentFoods.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return _buildSelector(context, recentFoods);
+      },
+    );
+  }
+
+  Widget _buildSelector(BuildContext context, List<Food> recentFoods) {
     final t = AppStrings.of(context);
-    final foodRepository = RepositoryProvider.of<FoodRepository>(context);
-    final recentFoods = foodRepository.getRecentFoods(limit: 15);
-
-    if (recentFoods.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
     return Card(
       elevation: 0,
       color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -85,7 +108,7 @@ class QuickFoodSelector extends StatelessWidget {
                       ),
                       label: Text('${food.name} ($kcalText)'),
                       tooltip: t.selectTooltip(food.name),
-                      onPressed: () => onFoodSelected(food),
+                      onPressed: () => widget.onFoodSelected(food),
                     ),
                   );
                 }).toList(),
