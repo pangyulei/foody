@@ -1,3 +1,4 @@
+import '../services/app_database.dart';
 import 'food.dart';
 
 /// 包装食品：带有营养成分表、按“基准份量”标注营养数值的食物。
@@ -48,4 +49,19 @@ class PremadeFood implements Food {
     this.unitName = 'ml',
     DateTime? lastUsedTime,
   }) : lastUsedTime = lastUsedTime ?? DateTime.now();
+
+  factory PremadeFood.fromRow(PremadeFoodRow row) {
+    return PremadeFood(
+      id: row.id,
+      name: row.name,
+      kj: row.kj,
+      carbs: row.carbs,
+      protein: row.protein,
+      fat: row.fat,
+      servingAmount: row.servingAmount,
+      basisAmount: row.basisAmount,
+      unitName: row.unitName,
+      lastUsedTime: row.lastUsedTime,
+    );
+  }
 }

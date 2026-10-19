@@ -1,3 +1,4 @@
+import '../services/app_database.dart';
 import 'food.dart';
 
 /// 用户自定义食品：例如一盘菜、一个鸡蛋。
@@ -37,4 +38,16 @@ class CustomFood implements Food {
     required this.fat,
     DateTime? lastUsedTime,
   }) : lastUsedTime = lastUsedTime ?? DateTime.now();
+
+  factory CustomFood.fromRow(CustomFoodRow row) {
+    return CustomFood(
+      id: row.id,
+      name: row.name,
+      kj: row.kj,
+      carbs: row.carbs,
+      protein: row.protein,
+      fat: row.fat,
+      lastUsedTime: row.lastUsedTime,
+    );
+  }
 }

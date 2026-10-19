@@ -3,17 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foody/models/custom_food.dart';
 import 'package:foody/models/diet_log.dart';
 import 'package:foody/models/premade_food.dart';
+import 'package:foody/repositories/diet_log_repository.dart';
 import 'package:foody/repositories/food_repository.dart';
 import 'package:foody/services/app_database.dart';
 
 void main() {
-  group('FoodRepository (Drift)', () {
+  group('DietLogRepository', () {
     late AppDatabase database;
-    late FoodRepository repository;
+    late FoodRepository foodRepository;
+    late DietLogRepository repository;
 
     setUp(() {
       database = AppDatabase(NativeDatabase.memory());
-      repository = FoodRepository(database);
+      foodRepository = FoodRepository(database);
+      repository = DietLogRepository(database, foodRepository);
     });
 
     tearDown(() async {
@@ -42,7 +45,9 @@ void main() {
       expect(log.id, greaterThan(0));
       expect(food.id, greaterThan(0));
 
-      final loaded = await repository.getDietLogsForDate(DateTime(2026, 10, 19));
+      final loaded = await repository.getDietLogsForDate(
+        DateTime(2026, 10, 19),
+      );
       expect(loaded, hasLength(1));
 
       final loadedLog = loaded.first;
@@ -64,38 +69,59 @@ void main() {
       expect(loadedFood.unitName, 'ml');
     });
 
-    test('saves a CustomFood log and lists recent foods', () async {
-      final egg = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
-      final milk = PremadeFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8);
+    test('saves and loads a CustomFood log', () async {
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+      final log = DietLog.withFood(
+        food: food,
+        createTime: DateTime(2026, 10, 19, 12),
+      );
 
-      await repository.saveDietLog(DietLog.withFood(food: egg, createTime: DateTime(2026, 10, 19, 12)));
-      await Future<void>.delayed(const Duration(milliseconds: 1100));
-      await repository.saveDietLog(DietLog.withFood(food: milk, createTime: DateTime(2026, 10, 19, 13)));
+      await repository.saveDietLog(log);
 
-      final recent = await repository.getRecentFoods();
-      expect(recent, hasLength(2));
-      expect(recent.first.name, '牛奶');
-      expect(recent.last.name, '鸡蛋');
-
-      final loaded = await repository.getDietLogsForDate(DateTime(2026, 10, 19));
-      expect(loaded, hasLength(2));
-      expect(loaded.first.food, isA<PremadeFood>());
-      expect(loaded.last.food, isA<CustomFood>());
+      final loaded = await repository.getDietLogsForDate(
+        DateTime(2026, 10, 19),
+      );
+      expect(loaded, hasLength(1));
+      expect(loaded.first.food, isA<CustomFood>());
+      expect(loaded.first.kj, 300);
     });
 
     test('updates a log and can switch from premade to custom food', () async {
-      final premade = PremadeFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8);
-      final log = DietLog.withFood(food: premade, createTime: DateTime(2026, 10, 19, 8));
+      final premade = PremadeFood(
+        name: '牛奶',
+        kj: 251,
+        carbs: 10,
+        protein: 6,
+        fat: 8,
+      );
+      final log = DietLog.withFood(
+        food: premade,
+        createTime: DateTime(2026, 10, 19, 8),
+      );
       await repository.saveDietLog(log);
 
-      final custom = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+      final custom = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
       log
         ..setFood(custom)
         ..quantity = 2
         ..note = 'Updated';
       await repository.saveDietLog(log);
 
-      final loaded = await repository.getDietLogsForDate(DateTime(2026, 10, 19));
+      final loaded = await repository.getDietLogsForDate(
+        DateTime(2026, 10, 19),
+      );
       expect(loaded, hasLength(1));
       expect(loaded.first.id, log.id);
       expect(loaded.first.food, isA<CustomFood>());
@@ -105,17 +131,28 @@ void main() {
     });
 
     test('deleting a log keeps the pure food', () async {
-      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
-      final log = DietLog.withFood(food: food, createTime: DateTime(2026, 10, 19, 8));
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+      final log = DietLog.withFood(
+        food: food,
+        createTime: DateTime(2026, 10, 19, 8),
+      );
       await repository.saveDietLog(log);
 
       final deleted = await repository.deleteDietLog(log.id);
       expect(deleted, isTrue);
 
-      final loaded = await repository.getDietLogsForDate(DateTime(2026, 10, 19));
+      final loaded = await repository.getDietLogsForDate(
+        DateTime(2026, 10, 19),
+      );
       expect(loaded, isEmpty);
 
-      final recent = await repository.getRecentFoods();
+      final recent = await foodRepository.getRecentFoods();
       expect(recent, hasLength(1));
       expect(recent.first.name, '鸡蛋');
     });

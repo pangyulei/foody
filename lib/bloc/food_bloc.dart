@@ -1,11 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../repositories/food_repository.dart';
+import '../repositories/diet_log_repository.dart';
 import 'food_event.dart';
 import 'food_state.dart';
 
 class FoodBloc extends Bloc<FoodEvent, FoodState> {
-  final FoodRepository repository;
+  final DietLogRepository repository;
 
   FoodBloc({required this.repository}) : super(FoodInitial()) {
     on<LoadDietLogs>(_onLoadDietLogs);

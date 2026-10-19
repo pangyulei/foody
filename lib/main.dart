@@ -7,6 +7,7 @@ import 'bloc/food_event.dart';
 import 'bloc/settings_cubit.dart';
 import 'l10n/app_strings.dart';
 import 'models/app_settings.dart';
+import 'repositories/diet_log_repository.dart';
 import 'repositories/food_repository.dart';
 import 'services/app_database.dart';
 import 'services/settings_service.dart';
@@ -18,6 +19,7 @@ void main() async {
   // 初始化 Drift/SQLite 数据库
   final database = AppDatabase.defaults();
   final foodRepository = FoodRepository(database);
+  final dietLogRepository = DietLogRepository(database, foodRepository);
 
   // 读取本地设置
   final settingsService = await SettingsService.create();
@@ -26,6 +28,7 @@ void main() async {
   runApp(
     MyApp(
       foodRepository: foodRepository,
+      dietLogRepository: dietLogRepository,
       settingsService: settingsService,
       initialSettings: initialSettings,
     ),
@@ -34,20 +37,25 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final FoodRepository foodRepository;
+  final DietLogRepository dietLogRepository;
   final SettingsService settingsService;
   final AppSettings initialSettings;
 
   const MyApp({
     super.key,
     required this.foodRepository,
+    required this.dietLogRepository,
     required this.settingsService,
     required this.initialSettings,
   });
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider.value(
-      value: foodRepository,
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: foodRepository),
+        RepositoryProvider.value(value: dietLogRepository),
+      ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
@@ -58,7 +66,8 @@ class MyApp extends StatelessWidget {
           ),
           BlocProvider(
             create: (_) =>
-                FoodBloc(repository: foodRepository)..add(const LoadDietLogs()),
+                FoodBloc(repository: dietLogRepository)
+                  ..add(const LoadDietLogs()),
           ),
         ],
         child: BlocBuilder<SettingsCubit, AppSettings>(
