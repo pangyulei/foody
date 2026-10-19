@@ -12,7 +12,7 @@ import 'repositories/meal_repository.dart';
 import 'services/app_database.dart';
 import 'services/backup_service.dart';
 import 'services/settings_service.dart';
-import 'widgets/app_lifecycle_backup.dart';
+import 'widgets/auto_backup_listener.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,7 +78,9 @@ class MyApp extends StatelessWidget {
         child: BlocBuilder<SettingsBloc, SettingsState>(
           builder: (context, state) {
             final settings = state.settings;
-            return AppLifecycleBackup(
+            return AutoBackupListener(
+              foodRepository: foodRepository,
+              mealRepository: mealRepository,
               backupService: backupService,
               child: MaterialApp(
                 onGenerateTitle: (context) => AppStrings.of(context).appTitle,

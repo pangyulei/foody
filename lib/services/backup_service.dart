@@ -23,7 +23,6 @@ class BackupService {
   final FoodRepository foodRepository;
   final MealRepository mealRepository;
 
-  DateTime? _lastAutomaticBackup;
   bool _isBackingUp = false;
 
   BackupService({
@@ -54,10 +53,10 @@ class BackupService {
       }
 
       final data = await _collectData(settings);
-      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final now = DateTime.now();
       final fileName = automatic
-          ? 'foody_auto_backup_$timestamp.json'
-          : 'foody_backup_$timestamp.json';
+          ? 'foody_auto_backup_${DateFormat('yyyyMMdd_HHmmss_SSS').format(now)}.json'
+          : 'foody_backup_${DateFormat('yyyyMMdd_HHmmss').format(now)}.json';
       final file = File(p.join(folderPath, fileName));
       await file.writeAsString(
         const JsonEncoder.withIndent('  ').convert(data),
@@ -69,17 +68,14 @@ class BackupService {
     }
   }
 
-  /// Background backups are lightly throttled so duplicate lifecycle events
-  /// cannot write the same snapshot twice in a row.
+  /// Writes a snapshot after a database change.
+  ///
+  /// Concurrent calls are skipped rather than queued; the next change writes a
+  /// fresh snapshot anyway.
   Future<void> createAutomaticBackup({
     required String folderPath,
     required AppSettings settings,
   }) async {
-    final now = DateTime.now();
-    if (_lastAutomaticBackup != null &&
-        now.difference(_lastAutomaticBackup!) < const Duration(seconds: 5)) {
-      return;
-    }
     if (_isBackingUp) return;
 
     try {
@@ -88,9 +84,8 @@ class BackupService {
         settings: settings,
         automatic: true,
       );
-      _lastAutomaticBackup = now;
     } catch (_) {
-      // Automatic backups must never interrupt backgrounding.
+      // Automatic backups must never interrupt the user's action.
     }
   }
 

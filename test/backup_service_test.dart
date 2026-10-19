@@ -117,15 +117,18 @@ void main() {
       settings: const AppSettings(),
       automatic: true,
     );
-    // File names have second resolution, so move past the current second.
-    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    // File names have millisecond resolution; keep a small gap so the two
+    // snapshots cannot collide.
+    await Future<void>.delayed(const Duration(milliseconds: 20));
     final secondPath = await service.createBackup(
       folderPath: tempDir.path,
       settings: const AppSettings(),
       automatic: true,
     );
 
-    final timestampPattern = RegExp(r'foody_auto_backup_\d{8}_\d{6}\.json$');
+    final timestampPattern = RegExp(
+      r'foody_auto_backup_\d{8}_\d{6}_\d{3}\.json$',
+    );
     expect(timestampPattern.hasMatch(firstPath), isTrue, reason: firstPath);
     expect(timestampPattern.hasMatch(secondPath), isTrue, reason: secondPath);
     expect(firstPath, isNot(secondPath));
