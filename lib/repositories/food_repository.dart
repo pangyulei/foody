@@ -17,6 +17,9 @@ class FoodRepository {
   /// Emits after a food is saved or deleted so the catalogue can refresh.
   Stream<void> get changes => _changes.stream;
 
+  /// Notifies listeners after an external data replacement (backup import).
+  void notifyChanged() => _changes.add(null);
+
   /// All pure foods in the catalogue, newest first.
   Future<List<Food>> getAllFoods() async {
     final premadeRows = await (_db.select(

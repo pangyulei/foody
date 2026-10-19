@@ -20,6 +20,9 @@ class AppSettings {
   /// 脂肪目标倍数 (g / kg 体重)
   final double fatFactor;
 
+  /// Local folder used for automatic and manual backups.
+  final String? backupFolder;
+
   const AppSettings({
     this.languageCode = 'zh',
     this.themeColorValue = 0xFF009688,
@@ -27,6 +30,7 @@ class AppSettings {
     this.carbsFactor = 3.0,
     this.proteinFactor = 1.5,
     this.fatFactor = 1.0,
+    this.backupFolder,
   });
 
   Color get themeColor => Color(themeColorValue);
@@ -53,6 +57,7 @@ class AppSettings {
     double? carbsFactor,
     double? proteinFactor,
     double? fatFactor,
+    String? backupFolder,
   }) {
     return AppSettings(
       languageCode: languageCode ?? this.languageCode,
@@ -61,6 +66,7 @@ class AppSettings {
       carbsFactor: carbsFactor ?? this.carbsFactor,
       proteinFactor: proteinFactor ?? this.proteinFactor,
       fatFactor: fatFactor ?? this.fatFactor,
+      backupFolder: backupFolder ?? this.backupFolder,
     );
   }
 
@@ -71,6 +77,7 @@ class AppSettings {
     'carbsFactor': carbsFactor,
     'proteinFactor': proteinFactor,
     'fatFactor': fatFactor,
+    'backupFolder': backupFolder,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -81,6 +88,7 @@ class AppSettings {
       carbsFactor: (json['carbsFactor'] as num?)?.toDouble() ?? 3.0,
       proteinFactor: (json['proteinFactor'] as num?)?.toDouble() ?? 1.5,
       fatFactor: (json['fatFactor'] as num?)?.toDouble() ?? 1.0,
+      backupFolder: json['backupFolder'] as String?,
     );
   }
 }

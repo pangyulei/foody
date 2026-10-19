@@ -34,6 +34,11 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         ),
       ),
     );
+    on<SettingsBackupFolderChanged>(
+      (event, emit) =>
+          _update(emit, state.settings.copyWith(backupFolder: event.folder)),
+    );
+    on<SettingsRestored>((event, emit) => _update(emit, event.settings));
     on<SettingsWeightChanged>(
       (event, emit) =>
           _update(emit, state.settings.copyWith(weightKg: event.weightKg)),

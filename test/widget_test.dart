@@ -108,6 +108,13 @@ void main() {
       expect(settings.themeColorValue, 0xFF2196F3);
       expect(settings.weightKg, 70);
       expect(settings.hasCompleteGoalData, isTrue);
+      expect(settings.backupFolder, isNull);
+    });
+
+    test('backup folder round-trips through settings JSON', () {
+      const settings = AppSettings(backupFolder: r'C:\backups');
+      final restored = AppSettings.fromJson(settings.toJson());
+      expect(restored.backupFolder, r'C:\backups');
     });
   });
 

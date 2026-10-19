@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../models/app_settings.dart';
+
 abstract class SettingsEvent extends Equatable {
   const SettingsEvent();
 
@@ -28,6 +30,24 @@ class SettingsThemeColorChanged extends SettingsEvent {
 /// Removes the stored daily goal values.
 class SettingsGoalsCleared extends SettingsEvent {
   const SettingsGoalsCleared();
+}
+
+class SettingsBackupFolderChanged extends SettingsEvent {
+  final String folder;
+
+  const SettingsBackupFolderChanged(this.folder);
+
+  @override
+  List<Object?> get props => [folder];
+}
+
+class SettingsRestored extends SettingsEvent {
+  final AppSettings settings;
+
+  const SettingsRestored(this.settings);
+
+  @override
+  List<Object?> get props => [settings];
 }
 
 class SettingsWeightChanged extends SettingsEvent {

@@ -7,10 +7,12 @@ import 'models/app_settings.dart';
 import 'pages/home/home_page.dart';
 import 'pages/settings/settings_bloc.dart';
 import 'pages/settings/settings_state.dart';
-import 'repositories/meal_repository.dart';
 import 'repositories/food_repository.dart';
+import 'repositories/meal_repository.dart';
 import 'services/app_database.dart';
+import 'services/backup_service.dart';
 import 'services/settings_service.dart';
+import 'widgets/app_lifecycle_backup.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +21,11 @@ void main() async {
   final database = AppDatabase.defaults();
   final foodRepository = FoodRepository(database);
   final mealRepository = MealRepository(database);
+  final backupService = BackupService(
+    database: database,
+    foodRepository: foodRepository,
+    mealRepository: mealRepository,
+  );
 
   // 读取本地设置
   final settingsService = await SettingsService.create();
@@ -28,6 +35,7 @@ void main() async {
     MyApp(
       foodRepository: foodRepository,
       mealRepository: mealRepository,
+      backupService: backupService,
       settingsService: settingsService,
       initialSettings: initialSettings,
     ),
@@ -37,6 +45,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   final FoodRepository foodRepository;
   final MealRepository mealRepository;
+  final BackupService backupService;
   final SettingsService settingsService;
   final AppSettings initialSettings;
 
@@ -44,6 +53,7 @@ class MyApp extends StatelessWidget {
     super.key,
     required this.foodRepository,
     required this.mealRepository,
+    required this.backupService,
     required this.settingsService,
     required this.initialSettings,
   });
@@ -54,6 +64,7 @@ class MyApp extends StatelessWidget {
       providers: [
         RepositoryProvider.value(value: foodRepository),
         RepositoryProvider.value(value: mealRepository),
+        RepositoryProvider.value(value: backupService),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -67,32 +78,35 @@ class MyApp extends StatelessWidget {
         child: BlocBuilder<SettingsBloc, SettingsState>(
           builder: (context, state) {
             final settings = state.settings;
-            return MaterialApp(
-              onGenerateTitle: (context) => AppStrings.of(context).appTitle,
-              debugShowCheckedModeBanner: false,
-              locale: Locale(settings.languageCode),
-              supportedLocales: const [Locale('zh'), Locale('en')],
-              localizationsDelegates: const [
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              theme: ThemeData(
-                useMaterial3: true,
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: settings.themeColor,
-                  brightness: Brightness.light,
+            return AppLifecycleBackup(
+              backupService: backupService,
+              child: MaterialApp(
+                onGenerateTitle: (context) => AppStrings.of(context).appTitle,
+                debugShowCheckedModeBanner: false,
+                locale: Locale(settings.languageCode),
+                supportedLocales: const [Locale('zh'), Locale('en')],
+                localizationsDelegates: const [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                theme: ThemeData(
+                  useMaterial3: true,
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: settings.themeColor,
+                    brightness: Brightness.light,
+                  ),
                 ),
-              ),
-              darkTheme: ThemeData(
-                useMaterial3: true,
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: settings.themeColor,
-                  brightness: Brightness.dark,
+                darkTheme: ThemeData(
+                  useMaterial3: true,
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: settings.themeColor,
+                    brightness: Brightness.dark,
+                  ),
                 ),
+                themeMode: ThemeMode.system,
+                home: const HomePage(),
               ),
-              themeMode: ThemeMode.system,
-              home: const HomePage(),
             );
           },
         ),

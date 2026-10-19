@@ -29,6 +29,17 @@ class MealRepository {
     return rows.map(_mapRow).toList();
   }
 
+  /// All meals, newest first.
+  Future<List<Meal>> getAllMeals() async {
+    final rows = await (_db.select(
+      _db.meals,
+    )..orderBy([(t) => OrderingTerm.desc(t.createTime)])).get();
+    return rows.map(_mapRow).toList();
+  }
+
+  /// Notifies listeners after an external data replacement (backup import).
+  void notifyChanged() => _changes.add(null);
+
   /// Every day that has meals, newest day first. Each inner list contains
   /// that day's meals in newest-first order.
   Future<List<List<Meal>>> getMealsByDay() async {

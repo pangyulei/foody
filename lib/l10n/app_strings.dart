@@ -206,4 +206,27 @@ class AppStrings {
   String get foodSaved => _en ? 'Food saved' : '食物已保存';
   String get saveFood => _en ? 'Save food' : '保存食物';
   String get updateFood => _en ? 'Update food' : '更新食物';
+
+  // 备份与恢复
+  String get backupAndRestore => _en ? 'Backup & restore' : '备份与恢复';
+  String get backupAndRestoreSubtitle =>
+      _en ? 'Manage backup folder and restore data' : '管理备份文件夹与恢复数据';
+  String get backupFolder => _en ? 'Backup folder' : '备份文件夹';
+  String get backupFolderNotSet => _en ? 'No folder selected' : '未选择文件夹';
+  String get chooseBackupFolder => _en ? 'Choose backup folder' : '选择备份文件夹';
+  String get backupNow => _en ? 'Backup now' : '立即备份';
+  String get backupNowSubtitle =>
+      _en ? 'Save a backup to the backup folder' : '将数据备份到备份文件夹';
+  String get restoreBackup => _en ? 'Restore backup' : '恢复备份';
+  String get restoreBackupSubtitle =>
+      _en ? 'Restore data from a backup file' : '从备份文件恢复数据';
+  String get backupFolderRequired =>
+      _en ? 'Choose a backup folder first' : '请先选择备份文件夹';
+  String backupSuccess(String path) =>
+      _en ? 'Backup saved to $path' : '备份已保存到 $path';
+  String backupFailed(String message) =>
+      _en ? 'Backup failed: $message' : '备份失败：$message';
+  String get restoreSuccess => _en ? 'Backup restored' : '备份已恢复';
+  String restoreFailed(String message) =>
+      _en ? 'Restore failed: $message' : '恢复失败：$message';
 }

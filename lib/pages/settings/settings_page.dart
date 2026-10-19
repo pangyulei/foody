@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../l10n/app_strings.dart';
+import '../backup/backup_page.dart';
 import '../food_catalogue/food_catalogue_page.dart';
 import '../goals/goals_page.dart';
 import 'settings_bloc.dart';
@@ -31,154 +32,207 @@ class SettingsPage extends StatelessWidget {
         final settings = state.settings;
 
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           children: [
-            // 语言
-            _SectionTitle(title: t.language, icon: Icons.translate),
             Card(
               elevation: 0,
+              margin: EdgeInsets.zero,
               color: Theme.of(context).colorScheme.surfaceContainerLow,
+              clipBehavior: Clip.antiAlias,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: SegmentedButton<String>(
-                  segments: [
-                    ButtonSegment(value: 'zh', label: Text(t.languageChinese)),
-                    ButtonSegment(value: 'en', label: Text(t.languageEnglish)),
-                  ],
-                  selected: {settings.languageCode},
-                  onSelectionChanged: (selection) {
-                    bloc.add(SettingsLanguageChanged(selection.first));
-                  },
-                  showSelectedIcon: false,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 主题颜色
-            _SectionTitle(title: t.themeColor, icon: Icons.palette_outlined),
-            Card(
-              elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
-                  children: _themeColors.map((value) {
-                    final selected = settings.themeColorValue == value;
-                    return InkWell(
-                      onTap: () => bloc.add(SettingsThemeColorChanged(value)),
-                      borderRadius: BorderRadius.circular(24),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Color(value),
-                          shape: BoxShape.circle,
-                          border: selected
-                              ? Border.all(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface,
-                                  width: 3,
-                                )
-                              : null,
+              child: Column(
+                children: [
+                  // 语言
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SettingLabel(icon: Icons.translate, title: t.language),
+                        const SizedBox(height: 8),
+                        SegmentedButton<String>(
+                          segments: [
+                            ButtonSegment(
+                              value: 'zh',
+                              label: Text(t.languageChinese),
+                            ),
+                            ButtonSegment(
+                              value: 'en',
+                              label: Text(t.languageEnglish),
+                            ),
+                          ],
+                          selected: {settings.languageCode},
+                          onSelectionChanged: (selection) {
+                            bloc.add(SettingsLanguageChanged(selection.first));
+                          },
+                          showSelectedIcon: false,
+                          style: const ButtonStyle(
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                         ),
-                        child: selected
-                            ? const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 22,
-                              )
-                            : null,
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 每日目标：数据完整时自动在今日页显示进度
-            _SectionTitle(title: t.dailyGoals, icon: Icons.flag_outlined),
-            Card(
-              elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListTile(
-                leading: const Icon(Icons.tune),
-                title: Text(t.editDailyGoals),
-                subtitle: Text(
-                  settings.hasCompleteGoalData
-                      ? '${t.targetsLine(settings.targetCarbs, settings.targetProtein, settings.targetFat)}\n${t.approxKcal(settings.targetKcal)}'
-                      : t.goalsNotSet,
-                  style: const TextStyle(fontSize: 12),
-                ),
-                isThreeLine: settings.hasCompleteGoalData,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (settings.hasCompleteGoalData)
-                      IconButton(
-                        tooltip: t.clearGoals,
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () {
-                          bloc.add(const SettingsGoalsCleared());
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(t.goalsCleared)),
-                          );
-                        },
-                      ),
-                    const Icon(Icons.chevron_right),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.of(
-                    context,
-                  ).push(MaterialPageRoute(builder: (_) => const GoalsPage()));
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 食物管理
-            _SectionTitle(title: t.foodCatalogue, icon: Icons.restaurant_menu),
-            Card(
-              elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListTile(
-                leading: const Icon(Icons.restaurant_menu),
-                title: Text(
-                  t.foodCatalogue,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                subtitle: Text(t.foodCatalogueSubtitle),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const FoodCataloguePage(),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  // 主题颜色
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SettingLabel(
+                          icon: Icons.palette_outlined,
+                          title: t.themeColor,
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: _themeColors.map((value) {
+                            final selected = settings.themeColorValue == value;
+                            return InkWell(
+                              onTap: () =>
+                                  bloc.add(SettingsThemeColorChanged(value)),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: Color(value),
+                                  shape: BoxShape.circle,
+                                  border: selected
+                                      ? Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                          width: 3,
+                                        )
+                                      : null,
+                                ),
+                                child: selected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 18,
+                                      )
+                                    : null,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  // 每日摄入目标
+                  ListTile(
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      Icons.flag_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      t.dailyGoals,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: Text(
+                      settings.hasCompleteGoalData
+                          ? '${t.targetsLine(settings.targetCarbs, settings.targetProtein, settings.targetFat)}\n${t.approxKcal(settings.targetKcal)}'
+                          : t.goalsNotSet,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    isThreeLine: settings.hasCompleteGoalData,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (settings.hasCompleteGoalData)
+                          IconButton(
+                            tooltip: t.clearGoals,
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () {
+                              bloc.add(const SettingsGoalsCleared());
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(t.goalsCleared)),
+                              );
+                            },
+                          ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const GoalsPage()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  // 食物管理
+                  ListTile(
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      Icons.restaurant_menu,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      t.foodCatalogue,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: Text(
+                      t.foodCatalogueSubtitle,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const FoodCataloguePage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  // 备份与恢复
+                  ListTile(
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      Icons.settings_backup_restore,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      t.backupAndRestore,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: Text(
+                      t.backupAndRestoreSubtitle,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const BackupPage()),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
           ],
         );
       },
@@ -186,26 +240,23 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String title;
+class _SettingLabel extends StatelessWidget {
   final IconData icon;
+  final String title;
 
-  const _SectionTitle({required this.title, required this.icon});
+  const _SettingLabel({required this.icon, required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 }
