@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
+import '../../models/app_settings.dart';
 import '../../utils/energy_converter.dart';
 
 class DailySummaryCard extends StatelessWidget {
@@ -7,6 +9,10 @@ class DailySummaryCard extends StatelessWidget {
   final double totalCarbs;
   final double totalProtein;
   final double totalFat;
+  final String title;
+
+  /// 为空或未启用时不显示目标进度圆环
+  final AppSettings? goals;
 
   const DailySummaryCard({
     super.key,
@@ -14,11 +20,15 @@ class DailySummaryCard extends StatelessWidget {
     required this.totalCarbs,
     required this.totalProtein,
     required this.totalFat,
+    required this.title,
+    this.goals,
   });
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final totalKcal = EnergyConverter.kjToKcal(totalKj);
+    final activeGoals = (goals?.hasGoals ?? false) ? goals : null;
 
     // 计算三大营养素热量占比 (碳水 4kcal/g, 蛋白质 4kcal/g, 脂肪 9kcal/g)
     final carbsKcal = totalCarbs * 4.0;
@@ -42,45 +52,59 @@ class DailySummaryCard extends StatelessWidget {
             // 主卡路里数值
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '今日已摄入',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          totalKcal.toStringAsFixed(1),
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
+                      const SizedBox(height: 4),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              totalKcal.toStringAsFixed(1),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'kcal (卡路里)',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.primary,
+                          const SizedBox(width: 6),
+                          Text(
+                            t.kcalUnit,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+                if (activeGoals != null && activeGoals.targetKcal > 0)
+                  _GoalRing(
+                    value: totalKcal,
+                    target: activeGoals.targetKcal,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 46,
+                    tooltip: t.goalCaloriesTooltip(activeGoals.targetKcal),
+                    showPercent: true,
+                  ),
               ],
             ),
             const SizedBox(height: 16),
@@ -115,27 +139,39 @@ class DailySummaryCard extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
-            // 营养素数据三元组
+            // 营养素数据
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildMacroItem(
-                  context,
-                  label: '碳水化合物',
-                  value: '${totalCarbs.toStringAsFixed(1)} g',
-                  color: Colors.blue,
+                Expanded(
+                  child: _buildMacroItem(
+                    context,
+                    t: t,
+                    label: t.carbs,
+                    amount: totalCarbs,
+                    color: Colors.blue,
+                    target: activeGoals?.targetCarbs,
+                  ),
                 ),
-                _buildMacroItem(
-                  context,
-                  label: '蛋白质',
-                  value: '${totalProtein.toStringAsFixed(1)} g',
-                  color: Colors.orange,
+                Expanded(
+                  child: _buildMacroItem(
+                    context,
+                    t: t,
+                    label: t.protein,
+                    amount: totalProtein,
+                    color: Colors.orange,
+                    target: activeGoals?.targetProtein,
+                  ),
                 ),
-                _buildMacroItem(
-                  context,
-                  label: '脂肪',
-                  value: '${totalFat.toStringAsFixed(1)} g',
-                  color: Colors.redAccent,
+                Expanded(
+                  child: _buildMacroItem(
+                    context,
+                    t: t,
+                    label: t.fat,
+                    amount: totalFat,
+                    color: Colors.redAccent,
+                    target: activeGoals?.targetFat,
+                  ),
                 ),
               ],
             ),
@@ -147,13 +183,17 @@ class DailySummaryCard extends StatelessWidget {
 
   Widget _buildMacroItem(
     BuildContext context, {
+    required AppStrings t,
     required String label,
-    required String value,
+    required double amount,
     required Color color,
+    required double? target,
   }) {
+    final showGoal = target != null && target > 0;
     return Column(
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               width: 8,
@@ -161,21 +201,102 @@ class DailySummaryCard extends StatelessWidget {
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                '${amount.toStringAsFixed(1)} g',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            if (showGoal) ...[
+              const SizedBox(width: 6),
+              _GoalRing(
+                value: amount,
+                target: target,
+                color: color,
+                size: 28,
+                tooltip: t.goalTooltip(target),
+              ),
+            ],
+          ],
         ),
       ],
+    );
+  }
+}
+
+/// 小圆形目标进度
+class _GoalRing extends StatelessWidget {
+  final double value;
+  final double target;
+  final Color color;
+  final double size;
+  final String tooltip;
+  final bool showPercent;
+
+  const _GoalRing({
+    required this.value,
+    required this.target,
+    required this.color,
+    required this.size,
+    required this.tooltip,
+    this.showPercent = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = target > 0 ? (value / target).clamp(0.0, 1.0) : 0.0;
+
+    return Tooltip(
+      message: tooltip,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          fit: StackFit.expand,
+          alignment: Alignment.center,
+          children: [
+            CircularProgressIndicator(
+              value: progress,
+              strokeWidth: showPercent ? 4 : 3,
+              backgroundColor: color.withAlpha(45),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+            if (showPercent)
+              Center(
+                child: Text(
+                  '${(value / target * 100).clamp(0, 999).toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontSize: size * 0.2,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

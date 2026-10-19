@@ -1,15 +1,21 @@
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../models/food_entry.dart';
+import '../models/custom_food.dart';
+import '../models/diet_log.dart';
+import '../models/premade_food.dart';
 import '../objectbox.g.dart'; // ObjectBox generated code
 
 class ObjectBoxService {
   late final Store store;
-  late final Box<FoodEntry> foodBox;
+  late final Box<PremadeFood> premadeFoodBox;
+  late final Box<CustomFood> customFoodBox;
+  late final Box<DietLog> dietLogBox;
 
   ObjectBoxService._create(this.store) {
-    foodBox = Box<FoodEntry>(store);
+    premadeFoodBox = Box<PremadeFood>(store);
+    customFoodBox = Box<CustomFood>(store);
+    dietLogBox = Box<DietLog>(store);
   }
 
   /// 初始化 ObjectBox Store

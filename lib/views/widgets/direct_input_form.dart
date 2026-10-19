@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../models/food_entry.dart';
+import '../../l10n/app_strings.dart';
+import '../../models/custom_food.dart';
+import '../../models/diet_log.dart';
+import '../../models/food.dart';
 import '../../utils/energy_converter.dart';
 import 'quick_food_selector.dart';
 
 class DirectInputForm extends StatefulWidget {
-  final FoodEntry? initialEntry;
-  final Function(FoodEntry entry) onSubmit;
+  final DietLog? initialLog;
+  final Function(DietLog log) onSubmit;
 
-  const DirectInputForm({super.key, this.initialEntry, required this.onSubmit});
+  const DirectInputForm({super.key, this.initialLog, required this.onSubmit});
 
   @override
   State<DirectInputForm> createState() => _DirectInputFormState();
@@ -27,25 +30,32 @@ class _DirectInputFormState extends State<DirectInputForm> {
   late TextEditingController _noteController;
 
   late DateTime _selectedDateTime;
+  Food? _selectedFood;
 
   @override
   void initState() {
     super.initState();
-    final entry = widget.initialEntry;
-    _nameController = TextEditingController(text: entry?.name ?? '');
-    _kjController = TextEditingController(text: entry?.kj.toString() ?? '');
+    final log = widget.initialLog;
+    final food = log?.food;
+    _selectedFood = food;
+    _nameController = TextEditingController(text: food?.name ?? '');
+    _kjController = TextEditingController(
+      text: food == null ? '' : _formatNumber(food.kj),
+    );
     _carbsController = TextEditingController(
-      text: entry?.carbs.toString() ?? '',
+      text: food == null ? '' : _formatNumber(food.carbs),
     );
     _proteinController = TextEditingController(
-      text: entry?.protein.toString() ?? '',
+      text: food == null ? '' : _formatNumber(food.protein),
     );
-    _fatController = TextEditingController(text: entry?.fat.toString() ?? '');
+    _fatController = TextEditingController(
+      text: food == null ? '' : _formatNumber(food.fat),
+    );
     _quantityController = TextEditingController(
-      text: entry?.quantity.toString() ?? '1.0',
+      text: _formatNumber(log?.quantity ?? 1.0),
     );
-    _noteController = TextEditingController(text: entry?.note ?? '');
-    _selectedDateTime = entry?.createTime ?? DateTime.now();
+    _noteController = TextEditingController(text: log?.note ?? '');
+    _selectedDateTime = log?.createTime ?? DateTime.now();
 
     _kjController.addListener(() => setState(() {}));
     _quantityController.addListener(() => setState(() {}));
@@ -66,22 +76,29 @@ class _DirectInputFormState extends State<DirectInputForm> {
     super.dispose();
   }
 
-  /// 快速导入历史食品
-  void _populateFromHistory(FoodEntry history) {
+  String _formatNumber(double value) {
+    if (value == 0) return '0';
+    if (value == value.roundToDouble()) return value.toInt().toString();
+    return value.toString();
+  }
+
+  /// 快速导入历史食物
+  void _populateFromHistory(Food food) {
     setState(() {
-      _nameController.text = history.name;
-      final histQty = history.quantity > 0 ? history.quantity : 1.0;
-      _kjController.text = (history.kj / histQty).toStringAsFixed(1);
-      _carbsController.text = (history.carbs / histQty).toStringAsFixed(1);
-      _proteinController.text = (history.protein / histQty).toStringAsFixed(1);
-      _fatController.text = (history.fat / histQty).toStringAsFixed(1);
-      _noteController.text = history.note ?? '';
+      _selectedFood = food;
+      _nameController.text = food.name;
+      _kjController.text = _formatNumber(food.kj);
+      _carbsController.text = _formatNumber(food.carbs);
+      _proteinController.text = _formatNumber(food.protein);
+      _fatController.text = _formatNumber(food.fat);
       _quantityController.text = '1.0';
+      _noteController.text = '';
     });
 
+    final t = AppStrings.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('已自动填入历史食品: ${history.name}'),
+        content: Text(t.filledFromHistory(food.name)),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -118,9 +135,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
     final current = double.tryParse(_quantityController.text.trim()) ?? 1.0;
     final updated = (current + delta).clamp(0.1, 99.0);
     setState(() {
-      _quantityController.text = updated.toStringAsFixed(
-        updated == updated.roundToDouble() ? 0 : 1,
-      );
+      _quantityController.text = _formatNumber(updated);
     });
   }
 
@@ -133,32 +148,33 @@ class _DirectInputFormState extends State<DirectInputForm> {
       final unitFat = double.tryParse(_fatController.text.trim()) ?? 0.0;
       final quantity = double.tryParse(_quantityController.text.trim()) ?? 1.0;
 
-      final totalKj = unitKj * quantity;
-      final totalCarbs = unitCarbs * quantity;
-      final totalProtein = unitProtein * quantity;
-      final totalFat = unitFat * quantity;
-
-      final entry = FoodEntry(
-        id: widget.initialEntry?.id ?? 0,
+      final existingFood = _selectedFood;
+      final food = CustomFood(
+        id: existingFood is CustomFood ? existingFood.id : 0,
         name: _nameController.text.trim(),
-        createTime: _selectedDateTime,
-        kj: totalKj,
-        carbs: totalCarbs,
-        protein: totalProtein,
-        fat: totalFat,
-        inputMode: 'direct',
+        kj: unitKj,
+        carbs: unitCarbs,
+        protein: unitProtein,
+        fat: unitFat,
+      );
+
+      final log = DietLog.withFood(
+        id: widget.initialLog?.id ?? 0,
+        food: food,
         quantity: quantity,
+        createTime: _selectedDateTime,
         note: _noteController.text.trim().isEmpty
             ? null
             : _noteController.text.trim(),
       );
 
-      widget.onSubmit(entry);
+      widget.onSubmit(log);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final unitKj = double.tryParse(_kjController.text.trim()) ?? 0.0;
     final quantity = double.tryParse(_quantityController.text.trim()) ?? 1.0;
     final totalKj = unitKj * quantity;
@@ -175,15 +191,15 @@ class _DirectInputFormState extends State<DirectInputForm> {
           // 食品名称
           TextFormField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: '食品名称',
-              hintText: '如：苹果、烤鸡胸肉、牛奶',
-              prefixIcon: Icon(Icons.fastfood_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: t.foodName,
+              hintText: t.foodNameHint,
+              prefixIcon: const Icon(Icons.fastfood_outlined),
+              border: const OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return '请输入食品名称';
+                return t.requiredName;
               }
               return null;
             },
@@ -203,10 +219,10 @@ class _DirectInputFormState extends State<DirectInputForm> {
                 children: [
                   const Icon(Icons.format_list_numbered),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      '食品数量',
-                      style: TextStyle(
+                      t.servings,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -249,19 +265,19 @@ class _DirectInputFormState extends State<DirectInputForm> {
           TextFormField(
             controller: _kjController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: '能量 (kJ 千焦)',
-              hintText: '输入单份能量数值',
-              prefixIcon: Icon(Icons.local_fire_department_outlined),
+            decoration: InputDecoration(
+              labelText: t.energyKj,
+              hintText: t.energyPerServingHint,
+              prefixIcon: const Icon(Icons.local_fire_department_outlined),
               suffixText: 'kJ',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return '请输入能量';
+                return t.requiredEnergy;
               }
               if (double.tryParse(value.trim()) == null) {
-                return '请输入有效数值';
+                return t.invalidNumber;
               }
               return null;
             },
@@ -291,8 +307,12 @@ class _DirectInputFormState extends State<DirectInputForm> {
                       children: [
                         Text(
                           quantity > 1
-                              ? '卡路里小计 (单份 ${EnergyConverter.kjToKcal(unitKj).toStringAsFixed(1)} kcal × $quantity 份)'
-                              : '换算卡路里',
+                              ? t.caloriesSubtotal(
+                                  EnergyConverter.kjToKcal(unitKj)
+                                      .toStringAsFixed(1),
+                                  quantity.toString(),
+                                )
+                              : t.convertedCalories,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -320,12 +340,12 @@ class _DirectInputFormState extends State<DirectInputForm> {
           TextFormField(
             controller: _carbsController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: '碳水化合物 (g)',
-              hintText: '输入碳水化合物克数',
-              prefixIcon: Icon(Icons.grain),
+            decoration: InputDecoration(
+              labelText: t.carbsLabel,
+              hintText: t.carbsHint,
+              prefixIcon: const Icon(Icons.grain),
               suffixText: 'g',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -334,12 +354,12 @@ class _DirectInputFormState extends State<DirectInputForm> {
           TextFormField(
             controller: _proteinController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: '蛋白质 (g)',
-              hintText: '输入蛋白质克数',
-              prefixIcon: Icon(Icons.fitness_center),
+            decoration: InputDecoration(
+              labelText: t.proteinLabel,
+              hintText: t.proteinHint,
+              prefixIcon: const Icon(Icons.fitness_center),
               suffixText: 'g',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -348,12 +368,12 @@ class _DirectInputFormState extends State<DirectInputForm> {
           TextFormField(
             controller: _fatController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: '脂肪 (g)',
-              hintText: '输入脂肪克数',
-              prefixIcon: Icon(Icons.opacity),
+            decoration: InputDecoration(
+              labelText: t.fatLabel,
+              hintText: t.fatHint,
+              prefixIcon: const Icon(Icons.opacity),
               suffixText: 'g',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -361,11 +381,11 @@ class _DirectInputFormState extends State<DirectInputForm> {
           // 备注
           TextFormField(
             controller: _noteController,
-            decoration: const InputDecoration(
-              labelText: '备注 (可选)',
-              hintText: '如：早餐、1袋',
-              prefixIcon: Icon(Icons.note_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: t.noteOptional,
+              hintText: t.noteHint,
+              prefixIcon: const Icon(Icons.note_outlined),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -377,7 +397,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
               borderRadius: BorderRadius.circular(8),
             ),
             leading: const Icon(Icons.access_time),
-            title: const Text('记录时间'),
+            title: Text(t.recordTime),
             subtitle: Text(
               DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime),
             ),
@@ -390,7 +410,9 @@ class _DirectInputFormState extends State<DirectInputForm> {
           FilledButton.icon(
             onPressed: _submit,
             icon: const Icon(Icons.check),
-            label: Text(widget.initialEntry == null ? '保存记录' : '更新记录'),
+            label: Text(
+              widget.initialLog == null ? t.saveRecord : t.updateRecord,
+            ),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),

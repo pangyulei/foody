@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../models/food_entry.dart';
+import '../../l10n/app_strings.dart';
+import '../../models/food.dart';
 import '../../repositories/food_repository.dart';
 import '../../utils/energy_converter.dart';
 
 class QuickFoodSelector extends StatelessWidget {
-  final Function(FoodEntry entry) onFoodSelected;
+  final Function(Food food) onFoodSelected;
 
   const QuickFoodSelector({super.key, required this.onFoodSelected});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final foodRepository = RepositoryProvider.of<FoodRepository>(context);
-    final recentFoods = foodRepository.getRecentUniqueFoods(limit: 15);
+    final recentFoods = foodRepository.getRecentFoods(limit: 15);
 
     if (recentFoods.isEmpty) {
       return const SizedBox.shrink();
@@ -38,7 +40,7 @@ class QuickFoodSelector extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '快速选择历史食品',
+                  t.quickAddTitle,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -47,7 +49,7 @@ class QuickFoodSelector extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  '点击即填入',
+                  t.tapToFill,
                   style: TextStyle(
                     fontSize: 11,
                     color: Theme.of(context).colorScheme.outline,
@@ -72,7 +74,7 @@ class QuickFoodSelector extends StatelessWidget {
                             .colorScheme
                             .primaryContainer,
                         child: Text(
-                          food.name.isNotEmpty ? food.name[0] : '食',
+                          food.name.isNotEmpty ? food.name[0] : 'F',
                           style: TextStyle(
                             fontSize: 11,
                             color: Theme.of(context)
@@ -82,7 +84,7 @@ class QuickFoodSelector extends StatelessWidget {
                         ),
                       ),
                       label: Text('${food.name} ($kcalText)'),
-                      tooltip: '选择 ${food.name}',
+                      tooltip: t.selectTooltip(food.name),
                       onPressed: () => onFoodSelected(food),
                     ),
                   );

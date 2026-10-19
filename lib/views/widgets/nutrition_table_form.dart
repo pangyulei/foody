@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../models/food_entry.dart';
+import '../../l10n/app_strings.dart';
+import '../../models/diet_log.dart';
+import '../../models/food.dart';
+import '../../models/premade_food.dart';
 import '../../utils/energy_converter.dart';
 import 'quick_food_selector.dart';
 
 class NutritionTableForm extends StatefulWidget {
-  final FoodEntry? initialEntry;
-  final Function(FoodEntry entry) onSubmit;
+  final DietLog? initialLog;
+  final Function(DietLog log) onSubmit;
 
   const NutritionTableForm({
     super.key,
-    this.initialEntry,
+    this.initialLog,
     required this.onSubmit,
   });
 
@@ -23,23 +26,26 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _nameController;
-  late TextEditingController _totalAmountController; // 食用总量 (如 200)
-  late TextEditingController _unitAmountController; // 参考份量 (如 100)
-  late TextEditingController _carbsController; // 每参考份量碳水
-  late TextEditingController _proteinController; // 每参考份量蛋白质
-  late TextEditingController _fatController; // 每参考份量脂肪
-  late TextEditingController _kjController; // 每参考份量能量
-  late TextEditingController _quantityController; // 食品数量 (如 1.0, 2.0)
+  late TextEditingController _totalAmountController; // 单份容量 (如 200)
+  late TextEditingController _unitAmountController; // 成分表基准 (如 100)
+  late TextEditingController _carbsController; // 每基准份量碳水
+  late TextEditingController _proteinController; // 每基准份量蛋白质
+  late TextEditingController _fatController; // 每基准份量脂肪
+  late TextEditingController _kjController; // 每基准份量能量
+  late TextEditingController _quantityController; // 食用数量
   late TextEditingController _noteController;
 
   String _unitName = 'ml'; // ml / g / 份
   late DateTime _selectedDateTime;
+  Food? _selectedFood;
 
   @override
   void initState() {
     super.initState();
-    final entry = widget.initialEntry;
-    _nameController = TextEditingController(text: entry?.name ?? '');
+    final log = widget.initialLog;
+    final food = log?.food;
+    _selectedFood = food;
+    _nameController = TextEditingController(text: food?.name ?? '');
     _totalAmountController = TextEditingController(text: '200');
     _unitAmountController = TextEditingController(text: '100');
     _carbsController = TextEditingController();
@@ -47,19 +53,13 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     _fatController = TextEditingController();
     _kjController = TextEditingController();
     _quantityController = TextEditingController(
-      text: entry?.quantity.toString() ?? '1.0',
+      text: _formatNumber(log?.quantity ?? 1.0),
     );
-    _noteController = TextEditingController(text: entry?.note ?? '');
-    _selectedDateTime = entry?.createTime ?? DateTime.now();
+    _noteController = TextEditingController(text: log?.note ?? '');
+    _selectedDateTime = log?.createTime ?? DateTime.now();
 
-    // 如果编辑现有条目
-    if (entry != null && entry.inputMode == 'table') {
-      _kjController.text = entry.kj.toString();
-      _carbsController.text = entry.carbs.toString();
-      _proteinController.text = entry.protein.toString();
-      _fatController.text = entry.fat.toString();
-      _totalAmountController.text = '100';
-      _unitAmountController.text = '100';
+    if (food != null) {
+      _applyFood(food);
     }
 
     _totalAmountController.addListener(() => setState(() {}));
@@ -85,22 +85,56 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     super.dispose();
   }
 
-  void _populateFromHistory(FoodEntry history) {
-    setState(() {
-      _nameController.text = history.name;
-      _kjController.text = history.kj.toStringAsFixed(1);
-      _carbsController.text = history.carbs.toStringAsFixed(1);
-      _proteinController.text = history.protein.toStringAsFixed(1);
-      _fatController.text = history.fat.toStringAsFixed(1);
-      _totalAmountController.text = '100';
-      _unitAmountController.text = '100';
+  String _formatNumber(double value) {
+    if (value == 0) return '0';
+    if (value == value.roundToDouble()) return value.toInt().toString();
+    return value.toString();
+  }
+
+  /// 把纯食物的“每份”营养换算回成分表基准值
+  void _applyFood(Food food, {bool resetQuantity = false}) {
+    _selectedFood = food;
+    _nameController.text = food.name;
+
+    final premade = food is PremadeFood ? food : null;
+    final serving = (premade != null && premade.servingAmount > 0)
+        ? premade.servingAmount
+        : 100.0;
+    final basis = (premade != null && premade.basisAmount > 0)
+        ? premade.basisAmount
+        : 100.0;
+    if (premade != null &&
+        (premade.unitName == 'ml' ||
+            premade.unitName == 'g' ||
+            premade.unitName == '份')) {
+      _unitName = premade.unitName;
+    } else {
+      _unitName = '份';
+    }
+
+    final ratio = basis / serving;
+    _totalAmountController.text = _formatNumber(serving);
+    _unitAmountController.text = _formatNumber(basis);
+    _kjController.text = _formatNumber(food.kj * ratio);
+    _carbsController.text = _formatNumber(food.carbs * ratio);
+    _proteinController.text = _formatNumber(food.protein * ratio);
+    _fatController.text = _formatNumber(food.fat * ratio);
+
+    if (resetQuantity) {
       _quantityController.text = '1.0';
-      _noteController.text = history.note ?? '';
+      _noteController.text = '';
+    }
+  }
+
+  void _populateFromHistory(Food food) {
+    setState(() {
+      _applyFood(food, resetQuantity: true);
     });
 
+    final t = AppStrings.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('已自动填入历史成分表食品: ${history.name}'),
+        content: Text(t.filledFromHistoryTable(food.name)),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -137,24 +171,22 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     final current = double.tryParse(_quantityController.text.trim()) ?? 1.0;
     final updated = (current + delta).clamp(0.1, 99.0);
     setState(() {
-      _quantityController.text = updated.toStringAsFixed(
-        updated == updated.roundToDouble() ? 0 : 1,
-      );
+      _quantityController.text = _formatNumber(updated);
     });
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      final totalAmount =
+      final t = AppStrings.of(context);
+      final servingAmount =
           double.tryParse(_totalAmountController.text.trim()) ?? 100.0;
-      final unitAmount =
+      final basisAmount =
           double.tryParse(_unitAmountController.text.trim()) ?? 100.0;
       final quantity = double.tryParse(_quantityController.text.trim()) ?? 1.0;
 
-      // 综合消耗总量 = 单次容量/份量 * 数量
-      final totalConsumedAmount = totalAmount * quantity;
-      final multiplier = unitAmount > 0
-          ? totalConsumedAmount / unitAmount
+      // 单份营养 = 成分表数值 × (单份容量 / 基准份量)
+      final perServingMultiplier = basisAmount > 0
+          ? servingAmount / basisAmount
           : 1.0;
 
       final rawCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
@@ -162,34 +194,48 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
       final rawFat = double.tryParse(_fatController.text.trim()) ?? 0.0;
       final rawKj = double.tryParse(_kjController.text.trim()) ?? 0.0;
 
-      final calculatedKj = rawKj * multiplier;
-      final calculatedCarbs = rawCarbs * multiplier;
-      final calculatedProtein = rawProtein * multiplier;
-      final calculatedFat = rawFat * multiplier;
+      final existingFood = _selectedFood;
+      final food = PremadeFood(
+        id: existingFood is PremadeFood ? existingFood.id : 0,
+        name: _nameController.text.trim(),
+        kj: rawKj * perServingMultiplier,
+        carbs: rawCarbs * perServingMultiplier,
+        protein: rawProtein * perServingMultiplier,
+        fat: rawFat * perServingMultiplier,
+        servingAmount: servingAmount,
+        basisAmount: basisAmount,
+        unitName: _unitName,
+      );
 
+      final totalConsumedAmount = servingAmount * quantity;
+      final unitLabel = _unitName == '份' ? t.unitServing : _unitName;
       final noteText = _noteController.text.trim().isNotEmpty
           ? _noteController.text.trim()
-          : '食用${totalConsumedAmount.toStringAsFixed(0)}$_unitName (${totalAmount.toStringAsFixed(0)}$_unitName/份 × $quantity份)';
+          : t.generatedNote(
+              totalConsumedAmount.toStringAsFixed(0),
+              unitLabel,
+              servingAmount.toStringAsFixed(0),
+              unitLabel,
+              quantity.toString(),
+              t.unitServing,
+            );
 
-      final entry = FoodEntry(
-        id: widget.initialEntry?.id ?? 0,
-        name: _nameController.text.trim(),
-        createTime: _selectedDateTime,
-        kj: calculatedKj,
-        carbs: calculatedCarbs,
-        protein: calculatedProtein,
-        fat: calculatedFat,
-        inputMode: 'table',
+      final log = DietLog.withFood(
+        id: widget.initialLog?.id ?? 0,
+        food: food,
         quantity: quantity,
+        createTime: _selectedDateTime,
         note: noteText,
       );
 
-      widget.onSubmit(entry);
+      widget.onSubmit(log);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+    final unitLabel = _unitName == '份' ? t.unitServing : _unitName;
     final totalAmount =
         double.tryParse(_totalAmountController.text.trim()) ?? 0.0;
     final unitAmount =
@@ -221,15 +267,15 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           // 食品名称
           TextFormField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: '食品名称',
-              hintText: '如：特仑苏纯牛奶、无糖酸奶',
-              prefixIcon: Icon(Icons.shopping_bag_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: t.foodName,
+              hintText: t.foodNameHint,
+              prefixIcon: const Icon(Icons.shopping_bag_outlined),
+              border: const OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return '请输入食品名称';
+                return t.requiredName;
               }
               return null;
             },
@@ -249,10 +295,10 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                 children: [
                   const Icon(Icons.format_list_numbered),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      '食品数量',
-                      style: TextStyle(
+                      t.servings,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -306,18 +352,18 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        '1. 单份与计量单位',
-                        style: TextStyle(
+                      Text(
+                        t.servingSection,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
                       ),
                       SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'ml', label: Text('ml')),
-                          ButtonSegment(value: 'g', label: Text('g')),
-                          ButtonSegment(value: '份', label: Text('份')),
+                        segments: [
+                          ButtonSegment(value: 'ml', label: Text(t.unitMl)),
+                          ButtonSegment(value: 'g', label: Text(t.unitG)),
+                          ButtonSegment(value: '份', label: Text(t.unitServing)),
                         ],
                         selected: {_unitName},
                         onSelectionChanged: (set) {
@@ -342,15 +388,17 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                             decimal: true,
                           ),
                           decoration: InputDecoration(
-                            labelText: '单份容量/重量',
-                            hintText: '例：200',
-                            suffixText: _unitName,
+                            labelText: t.servingSize,
+                            hintText: t.servingSizeHint,
+                            suffixText: unitLabel,
                             border: const OutlineInputBorder(),
                           ),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return '请输入容量';
+                            if (v == null || v.trim().isEmpty) {
+                              return t.requiredServingSize;
+                            }
                             if (double.tryParse(v.trim()) == null) {
-                              return '请输入有效数字';
+                              return t.invalidNumber;
                             }
                             return null;
                           },
@@ -364,15 +412,17 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                             decimal: true,
                           ),
                           decoration: InputDecoration(
-                            labelText: '成分表基准份量',
-                            hintText: '例：100',
-                            suffixText: _unitName,
+                            labelText: t.labelBasis,
+                            hintText: t.labelBasisHint,
+                            suffixText: unitLabel,
                             border: const OutlineInputBorder(),
                           ),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return '请输入基准';
+                            if (v == null || v.trim().isEmpty) {
+                              return t.requiredLabelBasis;
+                            }
                             if (double.tryParse(v.trim()) == null) {
-                              return '请输入有效数字';
+                              return t.invalidNumber;
                             }
                             return null;
                           },
@@ -399,7 +449,12 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '2. 营养成分表数值 (按每 ${_unitAmountController.text.isEmpty ? "100" : _unitAmountController.text}$_unitName 标注的数值输入)',
+                    t.nutritionValuesTitle(
+                      _unitAmountController.text.isEmpty
+                          ? '100'
+                          : _unitAmountController.text,
+                      unitLabel,
+                    ),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -413,16 +468,22 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: '能量 (kJ)',
-                      hintText: '输入成分表上的能量数值',
+                    decoration: InputDecoration(
+                      labelText: t.energyKj,
+                      hintText: t.tableEnergyHint,
                       suffixText: 'kJ',
-                      prefixIcon: Icon(Icons.local_fire_department_outlined),
-                      border: OutlineInputBorder(),
+                      prefixIcon: const Icon(
+                        Icons.local_fire_department_outlined,
+                      ),
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return '请输入能量';
-                      if (double.tryParse(v.trim()) == null) return '请输入有效数字';
+                      if (v == null || v.trim().isEmpty) {
+                        return t.requiredEnergy;
+                      }
+                      if (double.tryParse(v.trim()) == null) {
+                        return t.invalidNumber;
+                      }
                       return null;
                     },
                   ),
@@ -434,12 +495,12 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: '碳水化合物 (g)',
-                      hintText: '输入成分表上的碳水化合物克数',
-                      prefixIcon: Icon(Icons.grain),
+                    decoration: InputDecoration(
+                      labelText: t.carbsLabel,
+                      hintText: t.tableCarbsHint,
+                      prefixIcon: const Icon(Icons.grain),
                       suffixText: 'g',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -450,12 +511,12 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: '蛋白质 (g)',
-                      hintText: '输入成分表上的蛋白质克数',
-                      prefixIcon: Icon(Icons.fitness_center),
+                    decoration: InputDecoration(
+                      labelText: t.proteinLabel,
+                      hintText: t.tableProteinHint,
+                      prefixIcon: const Icon(Icons.fitness_center),
                       suffixText: 'g',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -466,12 +527,12 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: '脂肪 (g)',
-                      hintText: '输入成分表上的脂肪克数',
-                      prefixIcon: Icon(Icons.opacity),
+                    decoration: InputDecoration(
+                      labelText: t.fatLabel,
+                      hintText: t.tableFatHint,
+                      prefixIcon: const Icon(Icons.opacity),
                       suffixText: 'g',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ],
@@ -501,7 +562,11 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '自动换算实际摄入总量 (共 ${totalConsumedAmount.toStringAsFixed(0)}$_unitName, 倍率: ${multiplier.toStringAsFixed(2)}x)',
+                        t.autoConvertTitle(
+                          totalConsumedAmount.toStringAsFixed(0),
+                          unitLabel,
+                          multiplier.toStringAsFixed(2),
+                        ),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -511,7 +576,7 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '摄入卡路里:',
+                        t.intakeCalories,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.primary,
@@ -532,28 +597,39 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     spacing: 12,
                     children: [
                       Chip(
-                        avatar: const CircleAvatar(
-                          child: Text('碳', style: TextStyle(fontSize: 10)),
+                        avatar: CircleAvatar(
+                          child: Text(
+                            t.shortCarbs.substring(0, 1),
+                            style: const TextStyle(fontSize: 10),
+                          ),
                         ),
                         label: Text(
-                          '碳水: ${calculatedCarbs.toStringAsFixed(1)}g',
+                          '${t.shortCarbs}: ${calculatedCarbs.toStringAsFixed(1)}g',
                         ),
                         visualDensity: VisualDensity.compact,
                       ),
                       Chip(
-                        avatar: const CircleAvatar(
-                          child: Text('蛋', style: TextStyle(fontSize: 10)),
+                        avatar: CircleAvatar(
+                          child: Text(
+                            t.shortProtein.substring(0, 1),
+                            style: const TextStyle(fontSize: 10),
+                          ),
                         ),
                         label: Text(
-                          '蛋白质: ${calculatedProtein.toStringAsFixed(1)}g',
+                          '${t.shortProtein}: ${calculatedProtein.toStringAsFixed(1)}g',
                         ),
                         visualDensity: VisualDensity.compact,
                       ),
                       Chip(
-                        avatar: const CircleAvatar(
-                          child: Text('脂', style: TextStyle(fontSize: 10)),
+                        avatar: CircleAvatar(
+                          child: Text(
+                            t.shortFat.substring(0, 1),
+                            style: const TextStyle(fontSize: 10),
+                          ),
                         ),
-                        label: Text('脂肪: ${calculatedFat.toStringAsFixed(1)}g'),
+                        label: Text(
+                          '${t.shortFat}: ${calculatedFat.toStringAsFixed(1)}g',
+                        ),
                         visualDensity: VisualDensity.compact,
                       ),
                     ],
@@ -567,11 +643,11 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           // 备注
           TextFormField(
             controller: _noteController,
-            decoration: const InputDecoration(
-              labelText: '自定义备注 (可选)',
-              hintText: '如不填则自动生成',
-              prefixIcon: Icon(Icons.edit_note),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: t.customNote,
+              hintText: t.customNoteHint,
+              prefixIcon: const Icon(Icons.edit_note),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -583,7 +659,7 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
               borderRadius: BorderRadius.circular(8),
             ),
             leading: const Icon(Icons.access_time),
-            title: const Text('记录时间'),
+            title: Text(t.recordTime),
             subtitle: Text(
               DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime),
             ),
@@ -596,7 +672,9 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           FilledButton.icon(
             onPressed: _submit,
             icon: const Icon(Icons.check),
-            label: Text(widget.initialEntry == null ? '保存记录' : '更新记录'),
+            label: Text(
+              widget.initialLog == null ? t.saveRecord : t.updateRecord,
+            ),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'bloc/food_bloc.dart';
 import 'bloc/food_event.dart';
+import 'bloc/settings_cubit.dart';
+import 'l10n/app_strings.dart';
+import 'models/app_settings.dart';
 import 'repositories/food_repository.dart';
 import 'services/objectbox_service.dart';
+import 'services/settings_service.dart';
 import 'views/home_screen.dart';
 
 void main() async {
@@ -14,40 +19,78 @@ void main() async {
   final objectBoxService = await ObjectBoxService.create();
   final foodRepository = FoodRepository(objectBoxService);
 
-  runApp(MyApp(foodRepository: foodRepository));
+  // 读取本地设置
+  final settingsService = await SettingsService.create();
+  final initialSettings = await settingsService.load();
+
+  runApp(
+    MyApp(
+      foodRepository: foodRepository,
+      settingsService: settingsService,
+      initialSettings: initialSettings,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   final FoodRepository foodRepository;
+  final SettingsService settingsService;
+  final AppSettings initialSettings;
 
-  const MyApp({super.key, required this.foodRepository});
+  const MyApp({
+    super.key,
+    required this.foodRepository,
+    required this.settingsService,
+    required this.initialSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
     return RepositoryProvider.value(
       value: foodRepository,
-      child: BlocProvider(
-        create: (context) =>
-            FoodBloc(repository: foodRepository)..add(const LoadFoodEntries()),
-        child: MaterialApp(
-          title: 'Foood - 饮食与热量记录',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.teal,
-              brightness: Brightness.light,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => SettingsCubit(
+              service: settingsService,
+              initial: initialSettings,
             ),
           ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.teal,
-              brightness: Brightness.dark,
-            ),
+          BlocProvider(
+            create: (_) =>
+                FoodBloc(repository: foodRepository)..add(const LoadDietLogs()),
           ),
-          themeMode: ThemeMode.system,
-          home: const HomeScreen(),
+        ],
+        child: BlocBuilder<SettingsCubit, AppSettings>(
+          builder: (context, settings) {
+            return MaterialApp(
+              onGenerateTitle: (context) => AppStrings.of(context).appTitle,
+              debugShowCheckedModeBanner: false,
+              locale: Locale(settings.languageCode),
+              supportedLocales: const [Locale('zh'), Locale('en')],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              theme: ThemeData(
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: settings.themeColor,
+                  brightness: Brightness.light,
+                ),
+              ),
+              darkTheme: ThemeData(
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: settings.themeColor,
+                  brightness: Brightness.dark,
+                ),
+              ),
+              themeMode: ThemeMode.system,
+              home: const HomeScreen(),
+            );
+          },
         ),
       ),
     );

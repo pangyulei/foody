@@ -1,27 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../models/food_entry.dart';
+import '../../l10n/app_strings.dart';
+import '../../models/diet_log.dart';
+import '../../models/premade_food.dart';
 import '../../utils/energy_converter.dart';
 
 class FoodItemTile extends StatelessWidget {
-  final FoodEntry entry;
+  final DietLog log;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
   const FoodItemTile({
     super.key,
-    required this.entry,
+    required this.log,
     required this.onTap,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final formattedTime = DateFormat('HH:mm').format(entry.createTime);
-    final isTableMode = entry.inputMode == 'table';
-    final hasQuantity =
-        entry.quantity > 0 && (entry.quantity - 1.0).abs() > 0.01;
+    final t = AppStrings.of(context);
+    final food = log.food;
+    final name = food?.name ?? '';
+    final formattedTime = DateFormat('HH:mm').format(log.createTime);
+    final isPremade = food is PremadeFood;
+    final hasQuantity = log.quantity > 0 && (log.quantity - 1.0).abs() > 0.01;
 
     return Card(
       elevation: 1,
@@ -35,8 +39,8 @@ class FoodItemTile extends StatelessWidget {
             Expanded(
               child: Text(
                 hasQuantity
-                    ? '${entry.name} × ${entry.quantity % 1 == 0 ? entry.quantity.toInt() : entry.quantity}'
-                    : entry.name,
+                    ? '$name × ${log.quantity % 1 == 0 ? log.quantity.toInt() : log.quantity}'
+                    : name,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -46,18 +50,16 @@ class FoodItemTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: isTableMode
+                color: isPremade
                     ? Colors.teal.withAlpha(40)
                     : Colors.deepOrange.withAlpha(40),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                isTableMode ? '成分表' : '直接输入',
+                isPremade ? t.modeTable : t.modeDirect,
                 style: TextStyle(
                   fontSize: 11,
-                  color: isTableMode
-                      ? Colors.teal[800]
-                      : Colors.deepOrange[800],
+                  color: isPremade ? Colors.teal[800] : Colors.deepOrange[800],
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -72,7 +74,7 @@ class FoodItemTile extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  EnergyConverter.formatKcal(entry.kj),
+                  EnergyConverter.formatKcal(log.kj),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -92,16 +94,16 @@ class FoodItemTile extends StatelessWidget {
             const SizedBox(height: 6),
             // 营养元素明细
             Text(
-              '碳水: ${entry.carbs.toStringAsFixed(1)}g · 蛋白质: ${entry.protein.toStringAsFixed(1)}g · 脂肪: ${entry.fat.toStringAsFixed(1)}g',
+              t.macrosLine(log.carbs, log.protein, log.fat),
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            if (entry.note != null && entry.note!.isNotEmpty) ...[
+            if (log.note != null && log.note!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                '备注: ${entry.note}',
+                '${t.notePrefix}${log.note}',
                 style: TextStyle(
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
@@ -117,12 +119,12 @@ class FoodItemTile extends StatelessWidget {
             showDialog(
               context: context,
               builder: (ctx) => AlertDialog(
-                title: const Text('确认删除'),
-                content: Text('确定要删除“${entry.name}”的记录吗？'),
+                title: Text(t.confirmDelete),
+                content: Text(t.deleteMessage(name)),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('取消'),
+                    child: Text(t.cancel),
                   ),
                   TextButton(
                     onPressed: () {
@@ -130,7 +132,7 @@ class FoodItemTile extends StatelessWidget {
                       onDelete();
                     },
                     style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    child: const Text('删除'),
+                    child: Text(t.delete),
                   ),
                 ],
               ),
