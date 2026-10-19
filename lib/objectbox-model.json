@@ -1,0 +1,77 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:7792372518855771803",
+      "lastPropertyId": "10:3320837806338223688",
+      "name": "FoodEntry",
+      "properties": [
+        {
+          "id": "1:551811722872900807",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:8800804829574869171",
+          "name": "name",
+          "type": 9
+        },
+        {
+          "id": "3:2154990745915218481",
+          "name": "createTime",
+          "type": 10
+        },
+        {
+          "id": "4:187530118365701764",
+          "name": "kj",
+          "type": 8
+        },
+        {
+          "id": "5:6915293950965049629",
+          "name": "carbs",
+          "type": 8
+        },
+        {
+          "id": "6:1488901967790823935",
+          "name": "protein",
+          "type": 8
+        },
+        {
+          "id": "7:8926540144939582097",
+          "name": "fat",
+          "type": 8
+        },
+        {
+          "id": "8:8348472562798074222",
+          "name": "inputMode",
+          "type": 9
+        },
+        {
+          "id": "9:1183033120521408561",
+          "name": "note",
+          "type": 9
+        },
+        {
+          "id": "10:3320837806338223688",
+          "name": "quantity",
+          "type": 8
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "1:7792372518855771803",
+  "lastIndexId": "0:0",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}
