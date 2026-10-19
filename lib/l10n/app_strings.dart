@@ -34,6 +34,10 @@ class AppStrings {
       ? 'No meals logged today. Tap the button below to add one.'
       : '今天还没有饮食记录，快点击下方按钮添加吧！';
   String get emptyHistory => _en ? 'No records for this date' : '该日期暂无记录';
+  String get emptyHistoryList => _en ? 'No history yet' : '还没有历史记录';
+  String entryCount(int count) =>
+      _en ? '$count ${count == 1 ? 'item' : 'items'}' : '$count 项';
+  String historyDayTitle(String date) => _en ? 'History · $date' : '历史 · $date';
   String foodLogCount(int count) => _en
       ? 'Food Log ($count ${count == 1 ? "item" : "items"})'
       : '食物记录明细 ($count项)';

@@ -14,6 +14,7 @@ class NutritionTableForm extends StatefulWidget {
   final DietLog? initialLog;
   final Food? initialFood;
   final bool catalogueMode;
+  final DateTime? initialDate;
   final Function(Food food, DietLog log) onSubmit;
 
   const NutritionTableForm({
@@ -21,6 +22,7 @@ class NutritionTableForm extends StatefulWidget {
     this.initialLog,
     this.initialFood,
     this.catalogueMode = false,
+    this.initialDate,
     required this.onSubmit,
   });
 
@@ -62,7 +64,7 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
       text: _formatNumber(log?.quantity ?? 1.0),
     );
     _noteController = TextEditingController(text: log?.note ?? '');
-    _selectedDateTime = log?.createTime ?? DateTime.now();
+    _selectedDateTime = log?.createTime ?? widget.initialDate ?? DateTime.now();
 
     if (log != null) {
       _applyLog(log);

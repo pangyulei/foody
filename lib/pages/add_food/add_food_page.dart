@@ -20,11 +20,15 @@ class AddFoodPage extends StatefulWidget {
   final Food? initialFood;
   final bool catalogueMode;
 
+  /// Default date/time for a new log, e.g. when adding from a history day.
+  final DateTime? initialDate;
+
   const AddFoodPage({
     super.key,
     this.initialLog,
     this.initialFood,
     this.catalogueMode = false,
+    this.initialDate,
   });
 
   @override
@@ -133,12 +137,14 @@ class _AddFoodPageState extends State<AddFoodPage>
         initialLog: widget.initialLog,
         initialFood: widget.initialFood,
         catalogueMode: widget.catalogueMode,
+        initialDate: widget.initialDate,
         onSubmit: _handleSubmitted,
       ),
       DirectInputForm(
         initialLog: widget.initialLog,
         initialFood: widget.initialFood,
         catalogueMode: widget.catalogueMode,
+        initialDate: widget.initialDate,
         onSubmit: _handleSubmitted,
       ),
     ];

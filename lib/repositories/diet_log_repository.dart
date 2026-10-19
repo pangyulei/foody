@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:drift/drift.dart';
 
+import '../models/daily_log_summary.dart';
 import '../models/diet_log.dart';
 import '../services/app_database.dart';
 
@@ -26,23 +27,48 @@ class DietLogRepository {
               ..orderBy([(t) => OrderingTerm.desc(t.createTime)]))
             .get();
 
-    return rows.map((row) {
-      return DietLog(
-        id: row.id,
-        foodName: row.foodName,
-        kj: row.kj,
-        carbs: row.carbs,
-        protein: row.protein,
-        fat: row.fat,
-        rawFoodSource: row.rawFoodSource,
-        netContent: row.netContent,
-        basisAmount: row.basisAmount,
-        unitName: row.unitName,
-        quantity: row.quantity,
-        createTime: row.createTime,
-        note: row.note,
+    return rows.map(_mapRow).toList();
+  }
+
+  /// Every day that has diet logs, newest first, with daily totals.
+  Future<List<DailyLogSummary>> getDailySummaries() async {
+    final rows = await (_db.select(
+      _db.dietLogs,
+    )..orderBy([(t) => OrderingTerm.desc(t.createTime)])).get();
+
+    final logsByDay = <DateTime, List<DietLog>>{};
+    for (final row in rows) {
+      final log = _mapRow(row);
+      final day = DateTime(
+        log.createTime.year,
+        log.createTime.month,
+        log.createTime.day,
       );
-    }).toList();
+      logsByDay.putIfAbsent(day, () => <DietLog>[]).add(log);
+    }
+
+    final days = logsByDay.keys.toList()..sort((a, b) => b.compareTo(a));
+    return days
+        .map((day) => DailyLogSummary.fromLogs(day, logsByDay[day]!))
+        .toList();
+  }
+
+  DietLog _mapRow(DietLogRow row) {
+    return DietLog(
+      id: row.id,
+      foodName: row.foodName,
+      kj: row.kj,
+      carbs: row.carbs,
+      protein: row.protein,
+      fat: row.fat,
+      rawFoodSource: row.rawFoodSource,
+      netContent: row.netContent,
+      basisAmount: row.basisAmount,
+      unitName: row.unitName,
+      quantity: row.quantity,
+      createTime: row.createTime,
+      note: row.note,
+    );
   }
 
   /// Saves a diet log. The log already contains a snapshot of the food.

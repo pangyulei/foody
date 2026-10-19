@@ -68,6 +68,52 @@ void main() {
       expect(loadedLog.totalFat, 16);
     });
 
+    test('groups logs by day with totals, newest day first', () async {
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+
+      await repository.saveDietLog(
+        DietLog.fromFood(
+          food: food,
+          quantity: 1,
+          createTime: DateTime(2026, 10, 18, 8),
+        ),
+      );
+      await repository.saveDietLog(
+        DietLog.fromFood(
+          food: food,
+          quantity: 2,
+          createTime: DateTime(2026, 10, 18, 18),
+        ),
+      );
+      await repository.saveDietLog(
+        DietLog.fromFood(
+          food: food,
+          quantity: 1,
+          createTime: DateTime(2026, 10, 19, 9),
+        ),
+      );
+
+      final summaries = await repository.getDailySummaries();
+      expect(summaries, hasLength(2));
+      expect(summaries.first.date, DateTime(2026, 10, 19));
+      expect(summaries.first.logCount, 1);
+      expect(summaries.first.totalKj, 300);
+
+      final older = summaries.last;
+      expect(older.date, DateTime(2026, 10, 18));
+      expect(older.logCount, 2);
+      expect(older.totalKj, 900);
+      expect(older.totalCarbs, 3);
+      expect(older.totalProtein, 18);
+      expect(older.totalFat, 15);
+    });
+
     test('saves and loads a CustomFood log snapshot', () async {
       final food = CustomFood(
         name: '鸡蛋',

@@ -29,7 +29,7 @@ void main() {
       (state) => state is TodayLoaded && state.logs.isEmpty,
     );
     final initialHistory = historyBloc.stream.firstWhere(
-      (state) => state is HistoryLoaded && state.logs.isEmpty,
+      (state) => state is HistoryLoaded && state.summaries.isEmpty,
     );
     todayBloc.add(const LoadTodayLogs());
     historyBloc.add(const LoadHistoryLogs());
@@ -39,7 +39,7 @@ void main() {
       (state) => state is TodayLoaded && state.logs.isNotEmpty,
     );
     final historyHasLog = historyBloc.stream.firstWhere(
-      (state) => state is HistoryLoaded && state.logs.isNotEmpty,
+      (state) => state is HistoryLoaded && state.summaries.isNotEmpty,
     );
 
     final log = DietLog.fromFood(
@@ -53,7 +53,7 @@ void main() {
       (state) => state is TodayLoaded && state.logs.isEmpty,
     );
     final historyEmptyAgain = historyBloc.stream.firstWhere(
-      (state) => state is HistoryLoaded && state.logs.isEmpty,
+      (state) => state is HistoryLoaded && state.summaries.isEmpty,
     );
     await dietLogRepository.deleteDietLog(log.id);
     await Future.wait([todayEmptyAgain, historyEmptyAgain]);
