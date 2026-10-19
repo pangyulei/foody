@@ -119,13 +119,13 @@ class AppStrings {
   // 成分表表单
   String filledFromHistoryTable(String name) =>
       _en ? 'Filled from history: $name' : '已自动填入历史成分表食品: $name';
-  String get servingSection => _en ? '1. Serving & unit' : '1. 单份与计量单位';
+  String get servingSection => _en ? '1. Net content & unit' : '1. 净含量与单位';
   String get unitMl => 'ml';
   String get unitG => 'g';
   String get unitServing => _en ? 'serving' : '份';
-  String get servingSize => _en ? 'Serving size' : '单份容量/重量';
+  String get servingSize => _en ? 'Net content' : '净含量';
   String get servingSizeHint => _en ? 'e.g. 200' : '例：200';
-  String get requiredServingSize => _en ? 'Please enter serving size' : '请输入容量';
+  String get requiredServingSize => _en ? 'Please enter net content' : '请输入净含量';
   String get labelBasis => _en ? 'Label basis' : '成分表基准份量';
   String get labelBasisHint => _en ? 'e.g. 100' : '例：100';
   String get requiredLabelBasis => _en ? 'Please enter label basis' : '请输入基准';
@@ -148,13 +148,13 @@ class AppStrings {
   String generatedNote(
     String total,
     String unit,
-    String servingAmount,
+    String netContent,
     String unitName,
     String quantity,
     String servingWord,
   ) => _en
-      ? '$total $unit consumed ($servingAmount $unitName / $servingWord × $quantity)'
-      : '食用$total$unit ($servingAmount$unitName/份 × $quantity份)';
+      ? '$total $unit consumed ($netContent $unitName / $servingWord × $quantity)'
+      : '食用$total$unit ($netContent$unitName/份 × $quantity份)';
 
   // 设置
   String get language => _en ? 'Language' : '语言';
@@ -162,7 +162,9 @@ class AppStrings {
   String get languageEnglish => 'English';
   String get themeColor => _en ? 'Theme color' : '主题颜色';
   String get dailyGoals => _en ? 'Daily intake goals' : '每日摄入目标';
+  String get editDailyGoals => _en ? 'Edit goals' : '编辑每日目标';
   String get enableGoals => _en ? 'Show goal progress on Today' : '在今日页显示目标进度';
+  String get quantityMinError => _en ? 'Whole number ≥ 1' : '请输入 ≥1 的整数';
   String get bodyWeight => _en ? 'Body weight (kg)' : '体重 (kg)';
   String get bodyWeightHint => _en ? 'e.g. 70' : '例如 70';
   String get carbsFactor => _en ? 'Carbs (g per kg)' : '碳水倍数 (g/kg 体重)';
@@ -180,4 +182,25 @@ class AppStrings {
       : '约 ${kcal.toStringAsFixed(0)} kcal';
   String get goalsNotSet =>
       _en ? 'Set your body weight to calculate goals' : '输入体重后自动计算目标';
+
+  // 食物管理
+  String get foodCatalogue => _en ? 'Food catalogue' : '食物管理';
+  String get foodCatalogueSubtitle =>
+      _en ? 'Add, edit or delete saved foods' : '添加、编辑或删除已保存的食物';
+  String get addCatalogueFood => _en ? 'Add food' : '添加食物';
+  String get addCatalogueFoodTitle => _en ? 'Add Food' : '添加食物';
+  String get editCatalogueFoodTitle => _en ? 'Edit Food' : '编辑食物';
+  String get noCatalogueFoods => _en ? 'No saved foods yet' : '还没有保存的食物';
+  String foodCatalogueCount(int count) =>
+      _en ? '$count saved ${count == 1 ? 'food' : 'foods'}' : '共 $count 种食物';
+  String get foodTypePremade => _en ? 'Premade' : '包装食品';
+  String get foodTypeCustom => _en ? 'Custom' : '自定义';
+  String get confirmDeleteFood => _en ? 'Delete food?' : '删除食物？';
+  String deleteFoodMessage(String name) => _en
+      ? 'Delete "$name"? Existing meal records are kept.'
+      : '确定要删除“$name”吗？已有的饮食记录不会受影响。';
+  String get foodDeleted => _en ? 'Food deleted' : '已删除食物';
+  String get foodSaved => _en ? 'Food saved' : '食物已保存';
+  String get saveFood => _en ? 'Save food' : '保存食物';
+  String get updateFood => _en ? 'Update food' : '更新食物';
 }

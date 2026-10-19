@@ -4,6 +4,7 @@ import 'package:foody/models/app_settings.dart';
 import 'package:foody/models/custom_food.dart';
 import 'package:foody/models/diet_log.dart';
 import 'package:foody/models/food.dart';
+import 'package:foody/models/food_source.dart';
 import 'package:foody/models/premade_food.dart';
 import 'package:foody/utils/energy_converter.dart';
 
@@ -85,27 +86,28 @@ void main() {
         protein: 5,
         fat: 2,
       );
-      final log = DietLog.withFood(
+      final log = DietLog.fromFood(
         food: food,
         quantity: 2,
         createTime: DateTime.now(),
       );
 
-      expect(log.food, same(food));
-      expect(log.kj, 200);
-      expect(log.carbs, 20);
-      expect(log.protein, 10);
-      expect(log.fat, 4);
+      expect(log.foodName, 'A');
+      expect(log.kj, 100);
+      expect(log.totalKj, 200);
+      expect(log.totalCarbs, 20);
+      expect(log.totalProtein, 10);
+      expect(log.totalFat, 4);
     });
 
-    test('DietLog supports both PremadeFood and CustomFood', () {
+    test('DietLog.fromFood copies the food snapshot', () {
       final premade = PremadeFood(
         name: '牛奶',
         kj: 502.08,
         carbs: 10,
         protein: 6,
         fat: 8,
-        servingAmount: 200,
+        netContent: 200,
         basisAmount: 100,
         unitName: 'ml',
       );
@@ -117,19 +119,25 @@ void main() {
         fat: 5,
       );
 
-      final premadeLog = DietLog.withFood(
+      final premadeLog = DietLog.fromFood(
         food: premade,
         createTime: DateTime.now(),
       );
-      expect(premadeLog.food, same(premade));
+      expect(premadeLog.foodName, '牛奶');
+      expect(premadeLog.foodSource, FoodSource.premade);
+      expect(premadeLog.netContent, 200);
+      expect(premadeLog.basisAmount, 100);
+      expect(premadeLog.unitName, 'ml');
 
-      premadeLog.setFood(custom);
-      expect(premadeLog.food, same(custom));
-
-      expect(
-        DietLog.withFood(food: custom, createTime: DateTime.now()).food,
-        same(custom),
+      final customLog = DietLog.fromFood(
+        food: custom,
+        createTime: DateTime.now(),
       );
+      expect(customLog.foodName, '鸡蛋');
+      expect(customLog.foodSource, FoodSource.custom);
+      expect(customLog.netContent, 1);
+      expect(customLog.basisAmount, 1);
+      expect(customLog.unitName, '份');
     });
 
     test('List<DietLog> extension sums logs', () {
@@ -148,8 +156,8 @@ void main() {
         fat: 4,
       );
       final logs = [
-        DietLog.withFood(food: foodA, quantity: 1, createTime: DateTime.now()),
-        DietLog.withFood(food: foodB, quantity: 2, createTime: DateTime.now()),
+        DietLog.fromFood(food: foodA, quantity: 1, createTime: DateTime.now()),
+        DietLog.fromFood(food: foodB, quantity: 2, createTime: DateTime.now()),
       ];
 
       expect(logs.totalKj, 500);

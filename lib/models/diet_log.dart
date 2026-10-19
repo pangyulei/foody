@@ -1,17 +1,43 @@
 import '../utils/energy_converter.dart';
-import 'custom_food.dart';
 import 'food.dart';
+import 'food_source.dart';
 import 'premade_food.dart';
 
-/// 一次进食记录：引用某个纯食物，加上数量、时间等信息。
+/// A one-time eating record.
+///
+/// The food's attributes are copied into the log, so editing or deleting a
+/// [Food] later never changes historical records. Food is only a reusable
+/// input/catalogue model.
 class DietLog {
   int id;
 
-  PremadeFood? premadeFood;
+  String foodName;
 
-  CustomFood? customFood;
+  /// Per-serving energy (kJ)
+  double kj;
 
-  /// 食用数量（份数）
+  /// Per-serving carbohydrates (g)
+  double carbs;
+
+  /// Per-serving protein (g)
+  double protein;
+
+  /// Per-serving fat (g)
+  double fat;
+
+  /// Raw [FoodSource] value stored in the database.
+  int rawFoodSource;
+
+  /// Net content metadata copied from a [PremadeFood]
+  double netContent;
+
+  /// Label basis metadata copied from a [PremadeFood]
+  double basisAmount;
+
+  /// Unit metadata copied from a [PremadeFood]
+  String unitName;
+
+  /// Number of servings eaten
   double quantity;
 
   DateTime createTime;
@@ -20,51 +46,62 @@ class DietLog {
 
   DietLog({
     this.id = 0,
-    this.premadeFood,
-    this.customFood,
+    required this.foodName,
+    required this.kj,
+    required this.carbs,
+    required this.protein,
+    required this.fat,
+    required this.rawFoodSource,
+    this.netContent = 1,
+    this.basisAmount = 1,
+    this.unitName = '份',
     this.quantity = 1.0,
     required this.createTime,
     this.note,
   });
 
-  /// 创建一条引用纯食物的进食记录。
-  factory DietLog.withFood({
+  /// Creates a log by copying the food's current attributes.
+  factory DietLog.fromFood({
     int id = 0,
     required Food food,
     double quantity = 1.0,
     required DateTime createTime,
     String? note,
   }) {
-    final log = DietLog(
+    final premade = food is PremadeFood ? food : null;
+    return DietLog(
       id: id,
+      foodName: food.name,
+      kj: food.kj,
+      carbs: food.carbs,
+      protein: food.protein,
+      fat: food.fat,
+      rawFoodSource:
+          (premade != null ? FoodSource.premade : FoodSource.custom).value,
+      netContent: premade?.netContent ?? 1,
+      basisAmount: premade?.basisAmount ?? 1,
+      unitName: premade?.unitName ?? '份',
       quantity: quantity,
       createTime: createTime,
       note: note,
     );
-    log.setFood(food);
-    return log;
   }
 
-  /// 当前引用的纯食物（包装食品或自定义食品）
-  Food? get food => premadeFood ?? customFood;
+  /// Decoded source of this log's snapshot.
+  FoodSource get foodSource => FoodSource.fromValue(rawFoodSource);
 
-  void setFood(Food? food) {
-    premadeFood = food is PremadeFood ? food : null;
-    customFood = food is CustomFood ? food : null;
-  }
+  /// Total energy for this log (kJ)
+  double get totalKj => kj * quantity;
 
-  /// 本次摄入能量 (kJ)
-  double get kj => (food?.kj ?? 0) * quantity;
+  /// Total calories for this log (kcal)
+  double get calories => EnergyConverter.kjToKcal(totalKj);
 
-  /// 本次摄入卡路里 (kcal)
-  double get calories => EnergyConverter.kjToKcal(kj);
+  /// Total carbohydrates for this log (g)
+  double get totalCarbs => carbs * quantity;
 
-  /// 本次摄入碳水化合物 (g)
-  double get carbs => (food?.carbs ?? 0) * quantity;
+  /// Total protein for this log (g)
+  double get totalProtein => protein * quantity;
 
-  /// 本次摄入蛋白质 (g)
-  double get protein => (food?.protein ?? 0) * quantity;
-
-  /// 本次摄入脂肪 (g)
-  double get fat => (food?.fat ?? 0) * quantity;
+  /// Total fat for this log (g)
+  double get totalFat => fat * quantity;
 }

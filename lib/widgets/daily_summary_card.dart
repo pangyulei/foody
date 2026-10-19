@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_strings.dart';
-import '../../models/app_settings.dart';
-import '../../utils/energy_converter.dart';
+import '../l10n/app_strings.dart';
+import '../models/app_settings.dart';
+import '../utils/energy_converter.dart';
 
 class DailySummaryCard extends StatelessWidget {
   final double totalKj;

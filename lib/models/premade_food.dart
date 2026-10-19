@@ -25,8 +25,8 @@ class PremadeFood implements Food {
   @override
   double fat;
 
-  /// 单份容量/重量（例如 200）
-  double servingAmount;
+  /// 净含量（例如 200）
+  double netContent;
 
   /// 成分表基准份量（例如 100）
   double basisAmount;
@@ -44,7 +44,7 @@ class PremadeFood implements Food {
     required this.carbs,
     required this.protein,
     required this.fat,
-    this.servingAmount = 100,
+    this.netContent = 100,
     this.basisAmount = 100,
     this.unitName = 'ml',
     DateTime? lastUsedTime,
@@ -58,7 +58,7 @@ class PremadeFood implements Food {
       carbs: row.carbs,
       protein: row.protein,
       fat: row.fat,
-      servingAmount: row.servingAmount,
+      netContent: row.netContent,
       basisAmount: row.basisAmount,
       unitName: row.unitName,
       lastUsedTime: row.lastUsedTime,

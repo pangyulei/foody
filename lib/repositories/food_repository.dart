@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 
 import '../models/custom_food.dart';
@@ -8,11 +10,15 @@ import '../services/app_database.dart';
 /// Handles the pure food catalogue (premade and custom foods).
 class FoodRepository {
   final AppDatabase _db;
+  final StreamController<void> _changes = StreamController<void>.broadcast();
 
   FoodRepository(this._db);
 
-  /// Recently used pure foods, for the quick-add selector.
-  Future<List<Food>> getRecentFoods({int limit = 20}) async {
+  /// Emits after a food is saved or deleted so the catalogue can refresh.
+  Stream<void> get changes => _changes.stream;
+
+  /// All pure foods in the catalogue, newest first.
+  Future<List<Food>> getAllFoods() async {
     final premadeRows = await (_db.select(
       _db.premadeFoods,
     )..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
@@ -20,23 +26,45 @@ class FoodRepository {
       _db.customFoods,
     )..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
 
-    final foods = <Food>[
+    return <Food>[
       ...premadeRows.map(PremadeFood.fromRow),
       ...customRows.map(CustomFood.fromRow),
     ]..sort((a, b) => b.lastUsedTime.compareTo(a.lastUsedTime));
+  }
+
+  /// Recently used pure foods, for the quick-add selector.
+  Future<List<Food>> getRecentFoods({int limit = 20}) async {
+    final foods = await getAllFoods();
     return foods.take(limit).toList();
   }
 
   /// Inserts a new food or updates an existing one, returning its id.
-  Future<int> saveFood(Food food) {
-    if (food is PremadeFood) {
-      return _savePremadeFood(food);
-    }
-    if (food is CustomFood) {
-      return _saveCustomFood(food);
-    }
-    throw ArgumentError('Unsupported food type: ${food.runtimeType}');
+  Future<int> saveFood(Food food) async {
+    final id = switch (food) {
+      PremadeFood() => await _savePremadeFood(food),
+      CustomFood() => await _saveCustomFood(food),
+      _ => throw ArgumentError('Unsupported food type: ${food.runtimeType}'),
+    };
+    _changes.add(null);
+    return id;
   }
+
+  /// Deletes a food from the catalogue. Diet logs keep their snapshots.
+  Future<bool> deleteFood(Food food) async {
+    final count = switch (food) {
+      PremadeFood() => await (_db.delete(
+        _db.premadeFoods,
+      )..where((t) => t.id.equals(food.id))).go(),
+      CustomFood() => await (_db.delete(
+        _db.customFoods,
+      )..where((t) => t.id.equals(food.id))).go(),
+      _ => throw ArgumentError('Unsupported food type: ${food.runtimeType}'),
+    };
+    if (count > 0) _changes.add(null);
+    return count > 0;
+  }
+
+  Future<void> dispose() => _changes.close();
 
   Future<int> _savePremadeFood(PremadeFood food) async {
     final values = PremadeFoodsCompanion(
@@ -45,7 +73,7 @@ class FoodRepository {
       carbs: Value(food.carbs),
       protein: Value(food.protein),
       fat: Value(food.fat),
-      servingAmount: Value(food.servingAmount),
+      netContent: Value(food.netContent),
       basisAmount: Value(food.basisAmount),
       unitName: Value(food.unitName),
       lastUsedTime: Value(food.lastUsedTime),

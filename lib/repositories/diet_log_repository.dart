@@ -1,73 +1,62 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 
-import '../models/custom_food.dart';
 import '../models/diet_log.dart';
-import '../models/premade_food.dart';
 import '../services/app_database.dart';
-import 'food_repository.dart';
 
 /// Handles one-time eating records (diet logs).
 class DietLogRepository {
   final AppDatabase _db;
-  final FoodRepository _foodRepository;
+  final StreamController<void> _changes = StreamController<void>.broadcast();
 
-  DietLogRepository(this._db, this._foodRepository);
+  DietLogRepository(this._db);
+
+  /// Emits after a successful save or delete so pages can refresh.
+  Stream<void> get changes => _changes.stream;
 
   /// Diet logs for a day, newest first.
   Future<List<DietLog>> getDietLogsForDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
 
-    final query =
-        _db.select(_db.dietLogs).join([
-            leftOuterJoin(
-              _db.premadeFoods,
-              _db.premadeFoods.id.equalsExp(_db.dietLogs.premadeFoodId),
-            ),
-            leftOuterJoin(
-              _db.customFoods,
-              _db.customFoods.id.equalsExp(_db.dietLogs.customFoodId),
-            ),
-          ])
-          ..where(_db.dietLogs.createTime.isBetweenValues(startOfDay, endOfDay))
-          ..orderBy([OrderingTerm.desc(_db.dietLogs.createTime)]);
+    final rows =
+        await (_db.select(_db.dietLogs)
+              ..where((t) => t.createTime.isBetweenValues(startOfDay, endOfDay))
+              ..orderBy([(t) => OrderingTerm.desc(t.createTime)]))
+            .get();
 
-    final rows = await query.get();
     return rows.map((row) {
-      final logRow = row.readTable(_db.dietLogs);
-      final premadeRow = row.readTableOrNull(_db.premadeFoods);
-      final customRow = row.readTableOrNull(_db.customFoods);
       return DietLog(
-        id: logRow.id,
-        premadeFood: premadeRow == null
-            ? null
-            : PremadeFood.fromRow(premadeRow),
-        customFood: customRow == null ? null : CustomFood.fromRow(customRow),
-        quantity: logRow.quantity,
-        createTime: logRow.createTime,
-        note: logRow.note,
+        id: row.id,
+        foodName: row.foodName,
+        kj: row.kj,
+        carbs: row.carbs,
+        protein: row.protein,
+        fat: row.fat,
+        rawFoodSource: row.rawFoodSource,
+        netContent: row.netContent,
+        basisAmount: row.basisAmount,
+        unitName: row.unitName,
+        quantity: row.quantity,
+        createTime: row.createTime,
+        note: row.note,
       );
     }).toList();
   }
 
-  /// Saves a diet log and its referenced food.
+  /// Saves a diet log. The log already contains a snapshot of the food.
   Future<int> saveDietLog(DietLog log) async {
-    int? premadeFoodId;
-    int? customFoodId;
-    final food = log.food;
-    final now = DateTime.now();
-
-    if (food is PremadeFood) {
-      food.lastUsedTime = now;
-      premadeFoodId = await _foodRepository.saveFood(food);
-    } else if (food is CustomFood) {
-      food.lastUsedTime = now;
-      customFoodId = await _foodRepository.saveFood(food);
-    }
-
     final values = DietLogsCompanion(
-      premadeFoodId: Value(premadeFoodId),
-      customFoodId: Value(customFoodId),
+      foodName: Value(log.foodName),
+      kj: Value(log.kj),
+      carbs: Value(log.carbs),
+      protein: Value(log.protein),
+      fat: Value(log.fat),
+      rawFoodSource: Value(log.rawFoodSource),
+      netContent: Value(log.netContent),
+      basisAmount: Value(log.basisAmount),
+      unitName: Value(log.unitName),
       quantity: Value(log.quantity),
       createTime: Value(log.createTime),
       note: Value(log.note),
@@ -77,19 +66,24 @@ class DietLogRepository {
       await (_db.update(
         _db.dietLogs,
       )..where((t) => t.id.equals(log.id))).write(values);
+      _changes.add(null);
       return log.id;
     }
 
     final id = await _db.into(_db.dietLogs).insert(values);
     log.id = id;
+    _changes.add(null);
     return id;
   }
 
-  /// Deletes a diet log; the referenced pure food is kept.
+  /// Deletes a diet log. Food catalogue entries are not touched.
   Future<bool> deleteDietLog(int id) async {
     final count = await (_db.delete(
       _db.dietLogs,
     )..where((t) => t.id.equals(id))).go();
+    if (count > 0) _changes.add(null);
     return count > 0;
   }
+
+  Future<void> dispose() => _changes.close();
 }

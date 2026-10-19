@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_strings.dart';
-import '../../utils/energy_converter.dart';
+import '../../../l10n/app_strings.dart';
+import '../../../utils/energy_converter.dart';
 
 /// 两种输入方式共用的“实际摄入总量”预览卡片。
 class NutritionPreviewCard extends StatelessWidget {

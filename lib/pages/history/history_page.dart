@@ -2,19 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-import '../bloc/food_bloc.dart';
-import '../bloc/food_event.dart';
-import '../bloc/food_state.dart';
-import '../extensions/diet_log_extensions.dart';
-import '../l10n/app_strings.dart';
-import 'add_food_screen.dart';
-import 'widgets/daily_summary_card.dart';
-import 'widgets/error_view.dart';
-import 'widgets/food_item_tile.dart';
-import 'widgets/quick_add_sheet.dart';
+import '../../extensions/diet_log_extensions.dart';
+import '../../l10n/app_strings.dart';
+import '../../repositories/diet_log_repository.dart';
+import '../../widgets/daily_summary_card.dart';
+import '../../widgets/error_view.dart';
+import '../../widgets/food_item_tile.dart';
+import '../../widgets/quick_add_sheet.dart';
+import '../add_food/add_food_page.dart';
+import 'history_bloc.dart';
+import 'history_event.dart';
+import 'history_state.dart';
 
-class HistoryTab extends StatelessWidget {
-  const HistoryTab({super.key});
+class HistoryPage extends StatelessWidget {
+  const HistoryPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) =>
+          HistoryBloc(repository: context.read<DietLogRepository>())
+            ..add(const LoadHistoryLogs()),
+      child: const _HistoryView(),
+    );
+  }
+}
+
+class _HistoryView extends StatelessWidget {
+  const _HistoryView();
 
   Future<void> _selectDate(BuildContext context, DateTime currentDate) async {
     final pickedDate = await showDatePicker(
@@ -24,34 +39,34 @@ class HistoryTab extends StatelessWidget {
       lastDate: DateTime(2030),
     );
     if (pickedDate != null && context.mounted) {
-      context.read<FoodBloc>().add(SelectDate(pickedDate));
+      context.read<HistoryBloc>().add(SelectHistoryDate(pickedDate));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<FoodBloc, FoodState>(
+    return BlocBuilder<HistoryBloc, HistoryState>(
       builder: (context, state) {
-        if (state is FoodLoading || state is FoodInitial) {
+        if (state is HistoryLoading || state is HistoryInitial) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (state is FoodError) {
+        if (state is HistoryError) {
           return LoadErrorView(
             detail: state.message,
             onRetry: () {
-              context.read<FoodBloc>().add(const LoadDietLogs());
+              context.read<HistoryBloc>().add(const LoadHistoryLogs());
             },
           );
         }
 
-        if (state is! FoodLoaded) {
+        if (state is! HistoryLoaded) {
           return const SizedBox.shrink();
         }
 
         final t = AppStrings.of(context);
         final selectedDate = state.selectedDate;
-        final logs = state.selectedLogs;
+        final logs = state.logs;
         final isToday = _isToday(selectedDate);
 
         return CustomScrollView(
@@ -71,8 +86,8 @@ class HistoryTab extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.chevron_left),
                       onPressed: () {
-                        context.read<FoodBloc>().add(
-                          SelectDate(
+                        context.read<HistoryBloc>().add(
+                          SelectHistoryDate(
                             selectedDate.subtract(const Duration(days: 1)),
                           ),
                         );
@@ -110,8 +125,10 @@ class HistoryTab extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
                       onPressed: () {
-                        context.read<FoodBloc>().add(
-                          SelectDate(selectedDate.add(const Duration(days: 1))),
+                        context.read<HistoryBloc>().add(
+                          SelectHistoryDate(
+                            selectedDate.add(const Duration(days: 1)),
+                          ),
                         );
                       },
                     ),
@@ -195,12 +212,12 @@ class HistoryTab extends StatelessWidget {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => AddFoodScreen(initialLog: log),
+                          builder: (_) => AddFoodPage(initialLog: log),
                         ),
                       );
                     },
                     onDelete: () {
-                      context.read<FoodBloc>().add(DeleteDietLog(log.id));
+                      context.read<HistoryBloc>().add(DeleteHistoryLog(log.id));
                     },
                   );
                 }, childCount: logs.length),

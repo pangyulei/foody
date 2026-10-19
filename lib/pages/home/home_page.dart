@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../l10n/app_strings.dart';
-import 'add_food_screen.dart';
-import 'history_tab.dart';
-import 'settings_screen.dart';
-import 'today_tab.dart';
+import '../../l10n/app_strings.dart';
+import '../add_food/add_food_page.dart';
+import '../history/history_page.dart';
+import '../settings/settings_page.dart';
+import '../today/today_page.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomePageState extends State<HomePage> {
   int _index = 0;
 
   @override
@@ -31,14 +31,14 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: IndexedStack(
         index: _index,
-        children: const [TodayTab(), HistoryTab(), SettingsScreen()],
+        children: const [TodayPage(), HistoryPage(), SettingsPage()],
       ),
       floatingActionButton: _index == 0
           ? FloatingActionButton.extended(
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AddFoodScreen()),
-                );
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const AddFoodPage()));
               },
               icon: const Icon(Icons.add),
               label: Text(t.logAMeal),

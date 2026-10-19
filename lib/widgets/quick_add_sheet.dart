@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-import '../../bloc/food_bloc.dart';
-import '../../bloc/food_event.dart';
-import '../../l10n/app_strings.dart';
-import '../../models/diet_log.dart';
-import '../../models/food.dart';
-import '../../repositories/food_repository.dart';
-import '../../utils/energy_converter.dart';
+import '../l10n/app_strings.dart';
+import '../models/diet_log.dart';
+import '../models/food.dart';
+import '../repositories/diet_log_repository.dart';
+import '../repositories/food_repository.dart';
+import '../utils/energy_converter.dart';
 
 /// 弹出历史食物快速记录面板。
 void showQuickAddSheet(BuildContext context, DateTime targetDate) {
@@ -215,7 +214,7 @@ class _QuickAddFoodTileState extends State<_QuickAddFoodTile> {
             ),
             const SizedBox(width: 4),
             FilledButton.tonal(
-              onPressed: () {
+              onPressed: () async {
                 final now = DateTime.now();
                 final recordTime = DateTime(
                   widget.targetDate.year,
@@ -225,14 +224,23 @@ class _QuickAddFoodTileState extends State<_QuickAddFoodTile> {
                   now.minute,
                 );
 
-                final log = DietLog.withFood(
+                final log = DietLog.fromFood(
                   food: food,
                   quantity: _quantity,
                   createTime: recordTime,
                 );
 
-                context.read<FoodBloc>().add(AddDietLog(log));
-                widget.onAdded();
+                final foodRepository = context.read<FoodRepository>();
+                final dietLogRepository = context.read<DietLogRepository>();
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  food.lastUsedTime = now;
+                  await foodRepository.saveFood(food);
+                  await dietLogRepository.saveDietLog(log);
+                  widget.onAdded();
+                } catch (e) {
+                  messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+                }
               },
               child: Text(widget.strings.logButton),
             ),

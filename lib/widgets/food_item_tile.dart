@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../l10n/app_strings.dart';
-import '../../models/diet_log.dart';
-import '../../models/premade_food.dart';
-import '../../utils/energy_converter.dart';
+import '../l10n/app_strings.dart';
+import '../models/diet_log.dart';
+import '../models/food_source.dart';
+import '../utils/energy_converter.dart';
 
 class FoodItemTile extends StatelessWidget {
   final DietLog log;
@@ -21,10 +21,9 @@ class FoodItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
-    final food = log.food;
-    final name = food?.name ?? '';
+    final name = log.foodName;
     final formattedTime = DateFormat('HH:mm').format(log.createTime);
-    final isPremade = food is PremadeFood;
+    final isTableMode = log.foodSource == FoodSource.premade;
     final hasQuantity = log.quantity > 0 && (log.quantity - 1.0).abs() > 0.01;
 
     return Card(
@@ -50,16 +49,18 @@ class FoodItemTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: isPremade
+                color: isTableMode
                     ? Colors.teal.withAlpha(40)
                     : Colors.deepOrange.withAlpha(40),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                isPremade ? t.modeTable : t.modeDirect,
+                isTableMode ? t.modeTable : t.modeDirect,
                 style: TextStyle(
                   fontSize: 11,
-                  color: isPremade ? Colors.teal[800] : Colors.deepOrange[800],
+                  color: isTableMode
+                      ? Colors.teal[800]
+                      : Colors.deepOrange[800],
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -74,7 +75,7 @@ class FoodItemTile extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  EnergyConverter.formatKcal(log.kj),
+                  EnergyConverter.formatKcal(log.totalKj),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -94,7 +95,7 @@ class FoodItemTile extends StatelessWidget {
             const SizedBox(height: 6),
             // 营养元素明细
             Text(
-              t.macrosLine(log.carbs, log.protein, log.fat),
+              t.macrosLine(log.totalCarbs, log.totalProtein, log.totalFat),
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

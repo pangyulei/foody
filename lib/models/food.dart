@@ -24,6 +24,7 @@ abstract interface class Food {
 
   /// 最近一次使用时间
   DateTime get lastUsedTime;
+  set lastUsedTime(DateTime value);
 }
 
 extension FoodEnergy on Food {

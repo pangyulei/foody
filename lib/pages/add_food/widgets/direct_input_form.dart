@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import '../../l10n/app_strings.dart';
-import '../../models/custom_food.dart';
-import '../../models/diet_log.dart';
-import '../../models/food.dart';
+import '../../../l10n/app_strings.dart';
+import '../../../models/custom_food.dart';
+import '../../../models/diet_log.dart';
+import '../../../models/food.dart';
 import 'nutrition_preview_card.dart';
 import 'quick_food_selector.dart';
 
 class DirectInputForm extends StatefulWidget {
   final DietLog? initialLog;
-  final Function(DietLog log) onSubmit;
+  final Food? initialFood;
+  final bool catalogueMode;
+  final Function(Food food, DietLog log) onSubmit;
 
-  const DirectInputForm({super.key, this.initialLog, required this.onSubmit});
+  const DirectInputForm({
+    super.key,
+    this.initialLog,
+    this.initialFood,
+    this.catalogueMode = false,
+    required this.onSubmit,
+  });
 
   @override
   State<DirectInputForm> createState() => _DirectInputFormState();
@@ -36,20 +45,30 @@ class _DirectInputFormState extends State<DirectInputForm> {
   void initState() {
     super.initState();
     final log = widget.initialLog;
-    final food = log?.food;
+    final food = widget.initialFood;
     _selectedFood = food;
-    _nameController = TextEditingController(text: food?.name ?? '');
+    _nameController = TextEditingController(
+      text: food?.name ?? log?.foodName ?? '',
+    );
     _kjController = TextEditingController(
-      text: food == null ? '' : _formatNumber(food.kj),
+      text: food != null
+          ? _formatNumber(food.kj)
+          : (log == null ? '' : _formatNumber(log.kj)),
     );
     _carbsController = TextEditingController(
-      text: food == null ? '' : _formatNumber(food.carbs),
+      text: food != null
+          ? _formatNumber(food.carbs)
+          : (log == null ? '' : _formatNumber(log.carbs)),
     );
     _proteinController = TextEditingController(
-      text: food == null ? '' : _formatNumber(food.protein),
+      text: food != null
+          ? _formatNumber(food.protein)
+          : (log == null ? '' : _formatNumber(log.protein)),
     );
     _fatController = TextEditingController(
-      text: food == null ? '' : _formatNumber(food.fat),
+      text: food != null
+          ? _formatNumber(food.fat)
+          : (log == null ? '' : _formatNumber(log.fat)),
     );
     _quantityController = TextEditingController(
       text: _formatNumber(log?.quantity ?? 1.0),
@@ -91,7 +110,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
       _carbsController.text = _formatNumber(food.carbs);
       _proteinController.text = _formatNumber(food.protein);
       _fatController.text = _formatNumber(food.fat);
-      _quantityController.text = '1.0';
+      _quantityController.text = '1';
       _noteController.text = '';
     });
 
@@ -131,11 +150,11 @@ class _DirectInputFormState extends State<DirectInputForm> {
     });
   }
 
-  void _updateQuantity(double delta) {
-    final current = double.tryParse(_quantityController.text.trim()) ?? 1.0;
-    final updated = (current + delta).clamp(0.1, 99.0);
+  void _updateQuantity(int delta) {
+    final current = int.tryParse(_quantityController.text.trim()) ?? 1;
+    final updated = current + delta;
     setState(() {
-      _quantityController.text = _formatNumber(updated);
+      _quantityController.text = (updated < 1 ? 1 : updated).toString();
     });
   }
 
@@ -146,7 +165,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
       final unitProtein =
           double.tryParse(_proteinController.text.trim()) ?? 0.0;
       final unitFat = double.tryParse(_fatController.text.trim()) ?? 0.0;
-      final quantity = double.tryParse(_quantityController.text.trim()) ?? 1.0;
+      final quantity = int.tryParse(_quantityController.text.trim()) ?? 1;
 
       final existingFood = _selectedFood;
       final food = CustomFood(
@@ -156,19 +175,20 @@ class _DirectInputFormState extends State<DirectInputForm> {
         carbs: unitCarbs,
         protein: unitProtein,
         fat: unitFat,
+        lastUsedTime: existingFood?.lastUsedTime,
       );
 
-      final log = DietLog.withFood(
+      final log = DietLog.fromFood(
         id: widget.initialLog?.id ?? 0,
         food: food,
-        quantity: quantity,
+        quantity: quantity.toDouble(),
         createTime: _selectedDateTime,
         note: _noteController.text.trim().isEmpty
             ? null
             : _noteController.text.trim(),
       );
 
-      widget.onSubmit(log);
+      widget.onSubmit(food, log);
     }
   }
 
@@ -190,10 +210,9 @@ class _DirectInputFormState extends State<DirectInputForm> {
       child: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // 历史食品快速选择器
-          QuickFoodSelector(onFoodSelected: _populateFromHistory),
+          if (!widget.catalogueMode)
+            QuickFoodSelector(onFoodSelected: _populateFromHistory),
 
-          // 食品名称
           TextFormField(
             controller: _nameController,
             decoration: InputDecoration(
@@ -211,60 +230,69 @@ class _DirectInputFormState extends State<DirectInputForm> {
           ),
           const SizedBox(height: 16),
 
-          // 数量选择器
-          Card(
-            elevation: 0,
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.format_list_numbered),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      t.servings,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+          if (!widget.catalogueMode) ...[
+            Card(
+              elevation: 0,
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.format_list_numbered),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        t.servings,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    icon: const Icon(Icons.remove),
-                    onPressed: () => _updateQuantity(-0.5),
-                  ),
-                  SizedBox(
-                    width: 60,
-                    child: TextFormField(
-                      controller: _quantityController,
-                      textAlign: TextAlign.center,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 8),
-                        border: OutlineInputBorder(),
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.remove),
+                      onPressed: () => _updateQuantity(-1),
+                    ),
+                    SizedBox(
+                      width: 72,
+                      child: TextFormField(
+                        controller: _quantityController,
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          final quantity = int.tryParse(value?.trim() ?? '');
+                          if (quantity == null || quantity < 1) {
+                            return t.quantityMinError;
+                          }
+                          return null;
+                        },
                       ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    icon: const Icon(Icons.add),
-                    onPressed: () => _updateQuantity(0.5),
-                  ),
-                ],
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.add),
+                      onPressed: () => _updateQuantity(1),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
 
           // 营养成分数值 (每份)
           Card(
@@ -294,8 +322,6 @@ class _DirectInputFormState extends State<DirectInputForm> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 能量
                   TextFormField(
                     controller: _kjController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -321,8 +347,6 @@ class _DirectInputFormState extends State<DirectInputForm> {
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // 碳水化合物
                   TextFormField(
                     controller: _carbsController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -337,8 +361,6 @@ class _DirectInputFormState extends State<DirectInputForm> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 蛋白质
                   TextFormField(
                     controller: _proteinController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -353,8 +375,6 @@ class _DirectInputFormState extends State<DirectInputForm> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 脂肪
                   TextFormField(
                     controller: _fatController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -374,51 +394,53 @@ class _DirectInputFormState extends State<DirectInputForm> {
           ),
           const SizedBox(height: 16),
 
-          // 底部实际摄入总量预览
           NutritionPreviewCard(
             title: t.calculatedIntakeTitle,
-            subtitle: t.directCalculatedIntakeSubtitle(_formatNumber(quantity)),
+            subtitle: widget.catalogueMode
+                ? t.directNutritionSubtitle
+                : t.directCalculatedIntakeSubtitle(_formatNumber(quantity)),
             totalKj: totalKj,
             totalCarbs: totalCarbs,
             totalProtein: totalProtein,
             totalFat: totalFat,
           ),
-          const SizedBox(height: 16),
+          if (!widget.catalogueMode) ...[
+            const SizedBox(height: 16),
 
-          // 备注
-          TextFormField(
-            controller: _noteController,
-            decoration: InputDecoration(
-              labelText: t.noteOptional,
-              hintText: t.noteHint,
-              prefixIcon: const Icon(Icons.note_outlined),
-              border: const OutlineInputBorder(),
+            TextFormField(
+              controller: _noteController,
+              decoration: InputDecoration(
+                labelText: t.noteOptional,
+                hintText: t.noteHint,
+                prefixIcon: const Icon(Icons.note_outlined),
+                border: const OutlineInputBorder(),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // 时间选择
-          ListTile(
-            tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+            ListTile(
+              tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              leading: const Icon(Icons.access_time),
+              title: Text(t.recordTime),
+              subtitle: Text(
+                DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _pickDateTime,
             ),
-            leading: const Icon(Icons.access_time),
-            title: Text(t.recordTime),
-            subtitle: Text(
-              DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime),
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _pickDateTime,
-          ),
+          ],
           const SizedBox(height: 24),
 
-          // 提交按钮
           FilledButton.icon(
             onPressed: _submit,
             icon: const Icon(Icons.check),
             label: Text(
-              widget.initialLog == null ? t.saveRecord : t.updateRecord,
+              widget.catalogueMode
+                  ? (widget.initialFood == null ? t.saveFood : t.updateFood)
+                  : (widget.initialLog == null ? t.saveRecord : t.updateRecord),
             ),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),

@@ -1,48 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../bloc/food_bloc.dart';
-import '../bloc/food_event.dart';
-import '../bloc/food_state.dart';
-import '../bloc/settings_cubit.dart';
-import '../extensions/diet_log_extensions.dart';
-import '../l10n/app_strings.dart';
-import '../models/app_settings.dart';
-import 'add_food_screen.dart';
-import 'widgets/daily_summary_card.dart';
-import 'widgets/error_view.dart';
-import 'widgets/food_item_tile.dart';
-import 'widgets/quick_add_sheet.dart';
+import '../../extensions/diet_log_extensions.dart';
+import '../../l10n/app_strings.dart';
+import '../../repositories/diet_log_repository.dart';
+import '../../widgets/daily_summary_card.dart';
+import '../../widgets/error_view.dart';
+import '../../widgets/food_item_tile.dart';
+import '../../widgets/quick_add_sheet.dart';
+import '../add_food/add_food_page.dart';
+import '../settings/settings_bloc.dart';
+import '../settings/settings_state.dart';
+import 'today_bloc.dart';
+import 'today_event.dart';
+import 'today_state.dart';
 
-class TodayTab extends StatelessWidget {
-  const TodayTab({super.key});
+class TodayPage extends StatelessWidget {
+  const TodayPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<FoodBloc, FoodState>(
+    return BlocProvider(
+      create: (context) =>
+          TodayBloc(repository: context.read<DietLogRepository>())
+            ..add(const LoadTodayLogs()),
+      child: const _TodayView(),
+    );
+  }
+}
+
+class _TodayView extends StatelessWidget {
+  const _TodayView();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<TodayBloc, TodayState>(
       builder: (context, state) {
-        if (state is FoodLoading || state is FoodInitial) {
+        if (state is TodayLoading || state is TodayInitial) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (state is FoodError) {
+        if (state is TodayError) {
           return LoadErrorView(
             detail: state.message,
             onRetry: () {
-              context.read<FoodBloc>().add(const LoadDietLogs());
+              context.read<TodayBloc>().add(const LoadTodayLogs());
             },
           );
         }
 
-        if (state is! FoodLoaded) {
+        if (state is! TodayLoaded) {
           return const SizedBox.shrink();
         }
 
-        return BlocBuilder<SettingsCubit, AppSettings>(
-          builder: (context, settings) {
+        return BlocBuilder<SettingsBloc, SettingsState>(
+          builder: (context, settingsState) {
             final t = AppStrings.of(context);
             final now = DateTime.now();
-            final logs = state.todayLogs;
+            final logs = state.logs;
 
             return CustomScrollView(
               slivers: [
@@ -56,7 +71,7 @@ class TodayTab extends StatelessWidget {
                       totalProtein: logs.totalProtein,
                       totalFat: logs.totalFat,
                       title: t.intakeToday,
-                      goals: settings,
+                      goals: settingsState.settings,
                     ),
                   ),
                 ),
@@ -123,12 +138,12 @@ class TodayTab extends StatelessWidget {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => AddFoodScreen(initialLog: log),
+                              builder: (_) => AddFoodPage(initialLog: log),
                             ),
                           );
                         },
                         onDelete: () {
-                          context.read<FoodBloc>().add(DeleteDietLog(log.id));
+                          context.read<TodayBloc>().add(DeleteTodayLog(log.id));
                         },
                       );
                     }, childCount: logs.length),

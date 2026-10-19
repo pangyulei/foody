@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'bloc/food_bloc.dart';
-import 'bloc/food_event.dart';
-import 'bloc/settings_cubit.dart';
 import 'l10n/app_strings.dart';
 import 'models/app_settings.dart';
+import 'pages/home/home_page.dart';
+import 'pages/settings/settings_bloc.dart';
+import 'pages/settings/settings_state.dart';
 import 'repositories/diet_log_repository.dart';
 import 'repositories/food_repository.dart';
 import 'services/app_database.dart';
 import 'services/settings_service.dart';
-import 'views/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +18,7 @@ void main() async {
   // 初始化 Drift/SQLite 数据库
   final database = AppDatabase.defaults();
   final foodRepository = FoodRepository(database);
-  final dietLogRepository = DietLogRepository(database, foodRepository);
+  final dietLogRepository = DietLogRepository(database);
 
   // 读取本地设置
   final settingsService = await SettingsService.create();
@@ -59,19 +58,15 @@ class MyApp extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
-            create: (_) => SettingsCubit(
+            create: (_) => SettingsBloc(
               service: settingsService,
               initial: initialSettings,
             ),
           ),
-          BlocProvider(
-            create: (_) =>
-                FoodBloc(repository: dietLogRepository)
-                  ..add(const LoadDietLogs()),
-          ),
         ],
-        child: BlocBuilder<SettingsCubit, AppSettings>(
-          builder: (context, settings) {
+        child: BlocBuilder<SettingsBloc, SettingsState>(
+          builder: (context, state) {
+            final settings = state.settings;
             return MaterialApp(
               onGenerateTitle: (context) => AppStrings.of(context).appTitle,
               debugShowCheckedModeBanner: false,
@@ -97,7 +92,7 @@ class MyApp extends StatelessWidget {
                 ),
               ),
               themeMode: ThemeMode.system,
-              home: const HomeScreen(),
+              home: const HomePage(),
             );
           },
         ),
