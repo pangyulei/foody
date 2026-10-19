@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_strings.dart';
-import '../models/diet_log.dart';
+import '../models/meal.dart';
 import '../models/food.dart';
-import '../repositories/diet_log_repository.dart';
+import '../repositories/meal_repository.dart';
 import '../repositories/food_repository.dart';
 import '../utils/energy_converter.dart';
 
@@ -224,19 +224,19 @@ class _QuickAddFoodTileState extends State<_QuickAddFoodTile> {
                   now.minute,
                 );
 
-                final log = DietLog.fromFood(
+                final meal = Meal.fromFood(
                   food: food,
                   quantity: _quantity,
                   createTime: recordTime,
                 );
 
                 final foodRepository = context.read<FoodRepository>();
-                final dietLogRepository = context.read<DietLogRepository>();
+                final mealRepository = context.read<MealRepository>();
                 final messenger = ScaffoldMessenger.of(context);
                 try {
                   food.lastUsedTime = now;
                   await foodRepository.saveFood(food);
-                  await dietLogRepository.saveDietLog(log);
+                  await mealRepository.saveMeal(meal);
                   widget.onAdded();
                 } catch (e) {
                   messenger.showSnackBar(SnackBar(content: Text(e.toString())));

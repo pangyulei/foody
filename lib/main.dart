@@ -7,7 +7,7 @@ import 'models/app_settings.dart';
 import 'pages/home/home_page.dart';
 import 'pages/settings/settings_bloc.dart';
 import 'pages/settings/settings_state.dart';
-import 'repositories/diet_log_repository.dart';
+import 'repositories/meal_repository.dart';
 import 'repositories/food_repository.dart';
 import 'services/app_database.dart';
 import 'services/settings_service.dart';
@@ -18,7 +18,7 @@ void main() async {
   // 初始化 Drift/SQLite 数据库
   final database = AppDatabase.defaults();
   final foodRepository = FoodRepository(database);
-  final dietLogRepository = DietLogRepository(database);
+  final mealRepository = MealRepository(database);
 
   // 读取本地设置
   final settingsService = await SettingsService.create();
@@ -27,7 +27,7 @@ void main() async {
   runApp(
     MyApp(
       foodRepository: foodRepository,
-      dietLogRepository: dietLogRepository,
+      mealRepository: mealRepository,
       settingsService: settingsService,
       initialSettings: initialSettings,
     ),
@@ -36,14 +36,14 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final FoodRepository foodRepository;
-  final DietLogRepository dietLogRepository;
+  final MealRepository mealRepository;
   final SettingsService settingsService;
   final AppSettings initialSettings;
 
   const MyApp({
     super.key,
     required this.foodRepository,
-    required this.dietLogRepository,
+    required this.mealRepository,
     required this.settingsService,
     required this.initialSettings,
   });
@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: foodRepository),
-        RepositoryProvider.value(value: dietLogRepository),
+        RepositoryProvider.value(value: mealRepository),
       ],
       child: MultiBlocProvider(
         providers: [

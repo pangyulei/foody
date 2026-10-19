@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/app_strings.dart';
-import '../../repositories/diet_log_repository.dart';
+import '../../repositories/meal_repository.dart';
 import '../../widgets/day_log_content.dart';
 import '../../widgets/error_view.dart';
 import '../add_food/add_food_page.dart';
@@ -20,7 +20,7 @@ class HistoryDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => HistoryDetailBloc(
-        repository: context.read<DietLogRepository>(),
+        repository: context.read<MealRepository>(),
         date: date,
       )..add(const LoadHistoryDetail()),
       child: const _HistoryDetailView(),
@@ -90,12 +90,14 @@ class _HistoryDetailView extends StatelessWidget {
           );
         } else if (state is HistoryDetailLoaded) {
           body = DayLogContentView(
-            logs: state.logs,
+            meals: state.meals,
             date: state.date,
             summaryTitle: t.intakeThatDay,
             emptyMessage: t.emptyHistory,
             onDeleteLog: (id) {
-              context.read<HistoryDetailBloc>().add(DeleteHistoryDetailLog(id));
+              context.read<HistoryDetailBloc>().add(
+                DeleteHistoryDetailMeal(id),
+              );
             },
           );
         } else {
@@ -142,7 +144,7 @@ class _HistoryDetailView extends StatelessWidget {
               );
             },
             icon: const Icon(Icons.add),
-            label: Text(t.logAMeal),
+            label: Text(t.addMeal),
           ),
           body: body,
         );

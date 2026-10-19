@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../extensions/meal_extensions.dart';
 import '../../l10n/app_strings.dart';
-import '../../repositories/diet_log_repository.dart';
+import '../../repositories/meal_repository.dart';
 import '../../widgets/error_view.dart';
 import '../history_detail/history_detail_page.dart';
 import 'history_bloc.dart';
 import 'history_event.dart';
 import 'history_state.dart';
-import 'widgets/daily_log_summary_tile.dart';
+import 'widgets/daily_meal_summary_tile.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -17,8 +18,8 @@ class HistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          HistoryBloc(repository: context.read<DietLogRepository>())
-            ..add(const LoadHistoryLogs()),
+          HistoryBloc(repository: context.read<MealRepository>())
+            ..add(const LoadHistoryMeals()),
       child: const _HistoryView(),
     );
   }
@@ -39,7 +40,7 @@ class _HistoryView extends StatelessWidget {
           return LoadErrorView(
             detail: state.message,
             onRetry: () {
-              context.read<HistoryBloc>().add(const LoadHistoryLogs());
+              context.read<HistoryBloc>().add(const LoadHistoryMeals());
             },
           );
         }
@@ -50,7 +51,7 @@ class _HistoryView extends StatelessWidget {
 
         final t = AppStrings.of(context);
 
-        if (state.summaries.isEmpty) {
+        if (state.days.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -75,16 +76,16 @@ class _HistoryView extends StatelessWidget {
 
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: state.summaries.length,
+          itemCount: state.days.length,
           separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
-            final summary = state.summaries[index];
-            return DailyLogSummaryTile(
-              summary: summary,
+            final meals = state.days[index];
+            return DailyMealSummaryTile(
+              meals: meals,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => HistoryDetailPage(date: summary.date),
+                    builder: (_) => HistoryDetailPage(date: meals.date),
                   ),
                 );
               },

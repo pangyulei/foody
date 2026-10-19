@@ -4,21 +4,21 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_strings.dart';
 import '../../../models/custom_food.dart';
-import '../../../models/diet_log.dart';
 import '../../../models/food.dart';
+import '../../../models/meal.dart';
 import 'nutrition_preview_card.dart';
 import 'quick_food_selector.dart';
 
 class DirectInputForm extends StatefulWidget {
-  final DietLog? initialLog;
+  final Meal? initialMeal;
   final Food? initialFood;
   final bool catalogueMode;
   final DateTime? initialDate;
-  final Function(Food food, DietLog log) onSubmit;
+  final Function(Food food, Meal meal) onSubmit;
 
   const DirectInputForm({
     super.key,
-    this.initialLog,
+    this.initialMeal,
     this.initialFood,
     this.catalogueMode = false,
     this.initialDate,
@@ -46,37 +46,38 @@ class _DirectInputFormState extends State<DirectInputForm> {
   @override
   void initState() {
     super.initState();
-    final log = widget.initialLog;
+    final meal = widget.initialMeal;
     final food = widget.initialFood;
     _selectedFood = food;
     _nameController = TextEditingController(
-      text: food?.name ?? log?.foodName ?? '',
+      text: food?.name ?? meal?.foodName ?? '',
     );
     _kjController = TextEditingController(
       text: food != null
           ? _formatNumber(food.kj)
-          : (log == null ? '' : _formatNumber(log.kj)),
+          : (meal == null ? '' : _formatNumber(meal.kj)),
     );
     _carbsController = TextEditingController(
       text: food != null
           ? _formatNumber(food.carbs)
-          : (log == null ? '' : _formatNumber(log.carbs)),
+          : (meal == null ? '' : _formatNumber(meal.carbs)),
     );
     _proteinController = TextEditingController(
       text: food != null
           ? _formatNumber(food.protein)
-          : (log == null ? '' : _formatNumber(log.protein)),
+          : (meal == null ? '' : _formatNumber(meal.protein)),
     );
     _fatController = TextEditingController(
       text: food != null
           ? _formatNumber(food.fat)
-          : (log == null ? '' : _formatNumber(log.fat)),
+          : (meal == null ? '' : _formatNumber(meal.fat)),
     );
     _quantityController = TextEditingController(
-      text: _formatNumber(log?.quantity ?? 1.0),
+      text: _formatNumber(meal?.quantity ?? 1.0),
     );
-    _noteController = TextEditingController(text: log?.note ?? '');
-    _selectedDateTime = log?.createTime ?? widget.initialDate ?? DateTime.now();
+    _noteController = TextEditingController(text: meal?.note ?? '');
+    _selectedDateTime =
+        meal?.createTime ?? widget.initialDate ?? DateTime.now();
 
     _kjController.addListener(() => setState(() {}));
     _quantityController.addListener(() => setState(() {}));
@@ -180,8 +181,8 @@ class _DirectInputFormState extends State<DirectInputForm> {
         lastUsedTime: existingFood?.lastUsedTime,
       );
 
-      final log = DietLog.fromFood(
-        id: widget.initialLog?.id ?? 0,
+      final meal = Meal.fromFood(
+        id: widget.initialMeal?.id ?? 0,
         food: food,
         quantity: quantity.toDouble(),
         createTime: _selectedDateTime,
@@ -190,7 +191,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
             : _noteController.text.trim(),
       );
 
-      widget.onSubmit(food, log);
+      widget.onSubmit(food, meal);
     }
   }
 
@@ -442,7 +443,9 @@ class _DirectInputFormState extends State<DirectInputForm> {
             label: Text(
               widget.catalogueMode
                   ? (widget.initialFood == null ? t.saveFood : t.updateFood)
-                  : (widget.initialLog == null ? t.saveRecord : t.updateRecord),
+                  : (widget.initialMeal == null
+                        ? t.saveRecord
+                        : t.updateRecord),
             ),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),

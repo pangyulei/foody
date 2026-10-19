@@ -8,9 +8,6 @@ class AppSettings {
   /// 主题种子颜色 ARGB 值
   final int themeColorValue;
 
-  /// 是否在今日页面显示目标进度
-  final bool goalsEnabled;
-
   /// 体重 (kg)
   final double weightKg;
 
@@ -26,7 +23,6 @@ class AppSettings {
   const AppSettings({
     this.languageCode = 'zh',
     this.themeColorValue = 0xFF009688,
-    this.goalsEnabled = true,
     this.weightKg = 0,
     this.carbsFactor = 3.0,
     this.proteinFactor = 1.5,
@@ -35,7 +31,11 @@ class AppSettings {
 
   Color get themeColor => Color(themeColorValue);
 
-  bool get hasGoals => goalsEnabled && weightKg > 0;
+  /// Whether all values needed to calculate daily goals are present.
+  bool get hasCompleteGoalData =>
+      weightKg > 0 && carbsFactor > 0 && proteinFactor > 0 && fatFactor > 0;
+
+  bool get hasGoals => hasCompleteGoalData;
 
   double get targetCarbs => weightKg * carbsFactor;
 
@@ -49,7 +49,6 @@ class AppSettings {
   AppSettings copyWith({
     String? languageCode,
     int? themeColorValue,
-    bool? goalsEnabled,
     double? weightKg,
     double? carbsFactor,
     double? proteinFactor,
@@ -58,7 +57,6 @@ class AppSettings {
     return AppSettings(
       languageCode: languageCode ?? this.languageCode,
       themeColorValue: themeColorValue ?? this.themeColorValue,
-      goalsEnabled: goalsEnabled ?? this.goalsEnabled,
       weightKg: weightKg ?? this.weightKg,
       carbsFactor: carbsFactor ?? this.carbsFactor,
       proteinFactor: proteinFactor ?? this.proteinFactor,
@@ -69,7 +67,6 @@ class AppSettings {
   Map<String, dynamic> toJson() => {
     'languageCode': languageCode,
     'themeColorValue': themeColorValue,
-    'goalsEnabled': goalsEnabled,
     'weightKg': weightKg,
     'carbsFactor': carbsFactor,
     'proteinFactor': proteinFactor,
@@ -80,7 +77,6 @@ class AppSettings {
     return AppSettings(
       languageCode: json['languageCode'] as String? ?? 'zh',
       themeColorValue: (json['themeColorValue'] as num?)?.toInt() ?? 0xFF009688,
-      goalsEnabled: json['goalsEnabled'] as bool? ?? true,
       weightKg: (json['weightKg'] as num?)?.toDouble() ?? 0,
       carbsFactor: (json['carbsFactor'] as num?)?.toDouble() ?? 3.0,
       proteinFactor: (json['proteinFactor'] as num?)?.toDouble() ?? 1.5,

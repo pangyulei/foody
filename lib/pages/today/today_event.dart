@@ -8,20 +8,20 @@ abstract class TodayEvent extends Equatable {
 }
 
 /// Initial load; shows a loading indicator.
-class LoadTodayLogs extends TodayEvent {
-  const LoadTodayLogs();
+class LoadTodayMeals extends TodayEvent {
+  const LoadTodayMeals();
 }
 
 /// Silent refresh after the repository reports a change.
-class RefreshTodayLogs extends TodayEvent {
-  const RefreshTodayLogs();
+class RefreshTodayMeals extends TodayEvent {
+  const RefreshTodayMeals();
 }
 
-/// Delete one of today's diet logs.
-class DeleteTodayLog extends TodayEvent {
+/// Delete one of today's diet meals.
+class DeleteTodayMeal extends TodayEvent {
   final int id;
 
-  const DeleteTodayLog(this.id);
+  const DeleteTodayMeal(this.id);
 
   @override
   List<Object?> get props => [id];

@@ -23,9 +23,16 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         state.settings.copyWith(themeColorValue: event.colorValue),
       ),
     );
-    on<SettingsGoalsEnabledChanged>(
-      (event, emit) =>
-          _update(emit, state.settings.copyWith(goalsEnabled: event.enabled)),
+    on<SettingsGoalsCleared>(
+      (event, emit) => _update(
+        emit,
+        state.settings.copyWith(
+          weightKg: 0,
+          carbsFactor: 0,
+          proteinFactor: 0,
+          fatFactor: 0,
+        ),
+      ),
     );
     on<SettingsWeightChanged>(
       (event, emit) =>

@@ -12,7 +12,7 @@ class AppStrings {
   bool get _en => languageCode == 'en';
 
   // 通用
-  String get appTitle => _en ? 'Foody Food Log' : 'Foody 饮食日志';
+  String get appTitle => 'Foody';
   String get navToday => _en ? 'Today' : '今日';
   String get navHistory => _en ? 'History' : '历史';
   String get navSettings => _en ? 'Settings' : '设置';
@@ -38,11 +38,9 @@ class AppStrings {
   String entryCount(int count) =>
       _en ? '$count ${count == 1 ? 'item' : 'items'}' : '$count 项';
   String historyDayTitle(String date) => _en ? 'History · $date' : '历史 · $date';
-  String foodLogCount(int count) => _en
-      ? 'Food Log ($count ${count == 1 ? "item" : "items"})'
-      : '食物记录明细 ($count项)';
+  String mealCount(int count) => _en ? 'Meals ($count)' : '饮食记录 ($count项)';
   String get recentFoods => _en ? 'Recent foods' : '历史食品';
-  String get logAMeal => _en ? 'Log a Meal' : '记一餐';
+  String get addMeal => _en ? 'Meal' : '记一餐';
   String goalTooltip(double grams) => _en
       ? 'Goal: ${grams.toStringAsFixed(0)} g'
       : '目标: ${grams.toStringAsFixed(0)} g';
@@ -57,7 +55,7 @@ class AppStrings {
       _en ? 'Tap to log directly to $date' : '选中后即可直接快速记录到 $date';
   String quickAdded(String name) => _en ? 'Logged "$name"!' : '已快速记入“$name”！';
   String get noRecentFoods => _en
-      ? 'No history yet. Tap "Log a Meal" to add food first.'
+      ? 'No history yet. Tap "Meal" to add food first.'
       : '暂无历史食物记录，请先“记一餐”添加食物';
   String selectTooltip(String name) => _en ? 'Select $name' : '选择 $name';
   String get logButton => _en ? 'Log' : '记录';
@@ -76,8 +74,8 @@ class AppStrings {
   String get delete => _en ? 'Delete' : '删除';
 
   // 添加 / 编辑页面
-  String get addFoodTitle => _en ? 'Add Food Entry' : '添加食物记录';
-  String get editFoodTitle => _en ? 'Edit Food Entry' : '编辑食物记录';
+  String get addFoodTitle => _en ? 'Add Meal' : '添加饮食记录';
+  String get editFoodTitle => _en ? 'Edit Meal' : '编辑饮食记录';
   String get tabLabelInput => _en ? 'By nutrition label' : '按成分表记录';
   String get tabDirectInput => _en ? 'Direct input' : '直接输入';
   String get addedSuccess => _en ? 'Added!' : '添加成功！';
@@ -167,7 +165,8 @@ class AppStrings {
   String get themeColor => _en ? 'Theme color' : '主题颜色';
   String get dailyGoals => _en ? 'Daily intake goals' : '每日摄入目标';
   String get editDailyGoals => _en ? 'Edit goals' : '编辑每日目标';
-  String get enableGoals => _en ? 'Show goal progress on Today' : '在今日页显示目标进度';
+  String get clearGoals => _en ? 'Remove daily goals' : '清除每日目标';
+  String get goalsCleared => _en ? 'Daily goals removed' : '已清除每日目标';
   String get quantityMinError => _en ? 'Whole number ≥ 1' : '请输入 ≥1 的整数';
   String get bodyWeight => _en ? 'Body weight (kg)' : '体重 (kg)';
   String get bodyWeightHint => _en ? 'e.g. 70' : '例如 70';
@@ -185,7 +184,7 @@ class AppStrings {
       ? '≈ ${kcal.toStringAsFixed(0)} kcal'
       : '约 ${kcal.toStringAsFixed(0)} kcal';
   String get goalsNotSet =>
-      _en ? 'Set your body weight to calculate goals' : '输入体重后自动计算目标';
+      _en ? 'Fill in weight and all three macro factors' : '请填写体重和三大营养素倍数';
 
   // 食物管理
   String get foodCatalogue => _en ? 'Food catalogue' : '食物管理';

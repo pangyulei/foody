@@ -49,7 +49,7 @@ class FoodRepository {
     return id;
   }
 
-  /// Deletes a food from the catalogue. Diet logs keep their snapshots.
+  /// Deletes a food from the catalogue. Diet meals keep their snapshots.
   Future<bool> deleteFood(Food food) async {
     final count = switch (food) {
       PremadeFood() => await (_db.delete(

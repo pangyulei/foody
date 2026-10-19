@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../l10n/app_strings.dart';
-import '../../repositories/diet_log_repository.dart';
+import '../../repositories/meal_repository.dart';
 import '../../widgets/day_log_content.dart';
 import '../../widgets/error_view.dart';
 import '../settings/settings_bloc.dart';
@@ -18,8 +18,8 @@ class TodayPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          TodayBloc(repository: context.read<DietLogRepository>())
-            ..add(const LoadTodayLogs()),
+          TodayBloc(repository: context.read<MealRepository>())
+            ..add(const LoadTodayMeals()),
       child: const _TodayView(),
     );
   }
@@ -40,7 +40,7 @@ class _TodayView extends StatelessWidget {
           return LoadErrorView(
             detail: state.message,
             onRetry: () {
-              context.read<TodayBloc>().add(const LoadTodayLogs());
+              context.read<TodayBloc>().add(const LoadTodayMeals());
             },
           );
         }
@@ -53,13 +53,13 @@ class _TodayView extends StatelessWidget {
           builder: (context, settingsState) {
             final t = AppStrings.of(context);
             return DayLogContentView(
-              logs: state.logs,
+              meals: state.meals,
               date: DateTime.now(),
               summaryTitle: t.intakeToday,
               emptyMessage: t.emptyToday,
               goals: settingsState.settings,
               onDeleteLog: (id) {
-                context.read<TodayBloc>().add(DeleteTodayLog(id));
+                context.read<TodayBloc>().add(DeleteTodayMeal(id));
               },
             );
           },

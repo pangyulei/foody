@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../models/diet_log.dart';
+import '../../models/meal.dart';
 
 abstract class HistoryDetailState extends Equatable {
   final DateTime date;
@@ -20,13 +20,13 @@ class HistoryDetailLoading extends HistoryDetailState {
 }
 
 class HistoryDetailLoaded extends HistoryDetailState {
-  final List<DietLog> logs;
+  final List<Meal> meals;
 
-  const HistoryDetailLoaded({required DateTime date, required this.logs})
+  const HistoryDetailLoaded({required DateTime date, required this.meals})
     : super(date);
 
   @override
-  List<Object?> get props => [date, logs];
+  List<Object?> get props => [date, meals];
 }
 
 class HistoryDetailError extends HistoryDetailState {

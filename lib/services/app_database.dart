@@ -49,11 +49,11 @@ class CustomFoods extends Table {
   DateTimeColumn get lastUsedTime => dateTime()();
 }
 
-/// A one-time eating record. Food attributes are copied into the log; there is
+/// A one-time eating record. Food attributes are copied into the meal; there is
 /// intentionally no foreign key to the food catalogue.
-@DataClassName('DietLogRow')
-@TableIndex(name: 'idx_diet_logs_create_time', columns: {#createTime})
-class DietLogs extends Table {
+@DataClassName('MealRow')
+@TableIndex(name: 'idx_meals_create_time', columns: {#createTime})
+class Meals extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   TextColumn get foodName => text()();
@@ -81,14 +81,14 @@ class DietLogs extends Table {
   TextColumn get note => text().nullable()();
 }
 
-@DriftDatabase(tables: [PremadeFoods, CustomFoods, DietLogs])
+@DriftDatabase(tables: [PremadeFoods, CustomFoods, Meals])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   AppDatabase.defaults() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -103,13 +103,16 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await _migrateV3ToV4();
       }
+      if (from < 5) {
+        await _migrateV4ToV5();
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
 
-  /// v1 stored food foreign keys. v2 copies the food attributes onto each log
+  /// v1 stored food foreign keys. v2 copies the food attributes onto each meal
   /// so later food edits cannot alter history.
   Future<void> _migrateV1ToV2() async {
     await customStatement('''
@@ -346,6 +349,68 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('ALTER TABLE diet_logs_v4 RENAME TO diet_logs');
       await customStatement(
         'CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)',
+      );
+    });
+  }
+
+  /// v4 stored meals in the `diet_logs` table. v5 renames it to `meals`,
+  /// copying every row so existing meal records are preserved.
+  Future<void> _migrateV4ToV5() async {
+    await transaction(() async {
+      await customStatement('''
+        CREATE TABLE meals (
+          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          food_name TEXT NOT NULL,
+          kj REAL NOT NULL,
+          carbs REAL NOT NULL,
+          protein REAL NOT NULL,
+          fat REAL NOT NULL,
+          raw_food_source INTEGER NOT NULL,
+          net_content REAL NOT NULL,
+          basis_amount REAL NOT NULL,
+          unit_name TEXT NOT NULL,
+          quantity REAL NOT NULL,
+          create_time INTEGER NOT NULL,
+          note TEXT
+        )
+      ''');
+
+      await customStatement('''
+        INSERT INTO meals (
+          id,
+          food_name,
+          kj,
+          carbs,
+          protein,
+          fat,
+          raw_food_source,
+          net_content,
+          basis_amount,
+          unit_name,
+          quantity,
+          create_time,
+          note
+        )
+        SELECT
+          id,
+          food_name,
+          kj,
+          carbs,
+          protein,
+          fat,
+          raw_food_source,
+          net_content,
+          basis_amount,
+          unit_name,
+          quantity,
+          create_time,
+          note
+        FROM diet_logs
+      ''');
+
+      await customStatement('DROP TABLE diet_logs');
+      await customStatement(
+        'CREATE INDEX idx_meals_create_time ON meals(create_time)',
       );
     });
   }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../extensions/diet_log_extensions.dart';
+import '../extensions/meal_extensions.dart';
 import '../l10n/app_strings.dart';
 import '../models/app_settings.dart';
-import '../models/diet_log.dart';
+import '../models/meal.dart';
 import '../pages/add_food/add_food_page.dart';
 import 'daily_summary_card.dart';
 import 'food_item_tile.dart';
@@ -11,7 +11,7 @@ import 'quick_add_sheet.dart';
 
 /// Shared day view used by Today and by a history day detail page.
 class DayLogContentView extends StatelessWidget {
-  final List<DietLog> logs;
+  final List<Meal> meals;
   final DateTime date;
   final String summaryTitle;
   final String emptyMessage;
@@ -21,7 +21,7 @@ class DayLogContentView extends StatelessWidget {
 
   const DayLogContentView({
     super.key,
-    required this.logs,
+    required this.meals,
     required this.date,
     required this.summaryTitle,
     required this.emptyMessage,
@@ -41,10 +41,10 @@ class DayLogContentView extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: DailySummaryCard(
-              totalKj: logs.totalKj,
-              totalCarbs: logs.totalCarbs,
-              totalProtein: logs.totalProtein,
-              totalFat: logs.totalFat,
+              totalKj: meals.totalKj,
+              totalCarbs: meals.totalCarbs,
+              totalProtein: meals.totalProtein,
+              totalFat: meals.totalFat,
               title: summaryTitle,
               goals: goals,
             ),
@@ -62,7 +62,7 @@ class DayLogContentView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  t.foodLogCount(logs.length),
+                  t.mealCount(meals.length),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -79,7 +79,7 @@ class DayLogContentView extends StatelessWidget {
         ),
 
         // 记录列表 / 空状态
-        if (logs.isEmpty)
+        if (meals.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
@@ -107,19 +107,19 @@ class DayLogContentView extends StatelessWidget {
         else
           SliverList(
             delegate: SliverChildBuilderDelegate((context, index) {
-              final log = logs[index];
+              final meal = meals[index];
               return FoodItemTile(
-                log: log,
+                meal: meal,
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => AddFoodPage(initialLog: log),
+                      builder: (_) => AddFoodPage(initialMeal: meal),
                     ),
                   );
                 },
-                onDelete: () => onDeleteLog(log.id),
+                onDelete: () => onDeleteLog(meal.id),
               );
-            }, childCount: logs.length),
+            }, childCount: meals.length),
           ),
 
         SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),

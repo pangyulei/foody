@@ -8,11 +8,11 @@ abstract class HistoryEvent extends Equatable {
 }
 
 /// Initial load; shows a loading indicator.
-class LoadHistoryLogs extends HistoryEvent {
-  const LoadHistoryLogs();
+class LoadHistoryMeals extends HistoryEvent {
+  const LoadHistoryMeals();
 }
 
 /// Silent refresh after the repository reports a change.
-class RefreshHistoryLogs extends HistoryEvent {
-  const RefreshHistoryLogs();
+class RefreshHistoryMeals extends HistoryEvent {
+  const RefreshHistoryMeals();
 }

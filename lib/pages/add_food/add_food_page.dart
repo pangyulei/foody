@@ -3,29 +3,29 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../l10n/app_strings.dart';
 import '../../models/custom_food.dart';
-import '../../models/diet_log.dart';
 import '../../models/food.dart';
 import '../../models/food_source.dart';
-import '../../repositories/diet_log_repository.dart';
+import '../../models/meal.dart';
 import '../../repositories/food_repository.dart';
+import '../../repositories/meal_repository.dart';
 import 'widgets/direct_input_form.dart';
 import 'widgets/nutrition_table_form.dart';
 
 class AddFoodPage extends StatefulWidget {
   /// Edits an existing meal record.
-  final DietLog? initialLog;
+  final Meal? initialMeal;
 
-  /// Edits a saved catalogue food. When [catalogueMode] is true, no diet log
-  /// is written; only the food catalogue entry is created or updated.
+  /// Edits a saved catalogue food. When [catalogueMode] is true, no meal is
+  /// written; only the food catalogue entry is created or updated.
   final Food? initialFood;
   final bool catalogueMode;
 
-  /// Default date/time for a new log, e.g. when adding from a history day.
+  /// Default date/time for a new meal, e.g. when adding from a history day.
   final DateTime? initialDate;
 
   const AddFoodPage({
     super.key,
-    this.initialLog,
+    this.initialMeal,
     this.initialFood,
     this.catalogueMode = false,
     this.initialDate,
@@ -45,7 +45,7 @@ class _AddFoodPageState extends State<AddFoodPage>
 
   int get _initialTabIndex {
     if (widget.catalogueMode && widget.initialFood is CustomFood) return 1;
-    if (widget.initialLog?.foodSource == FoodSource.custom) return 1;
+    if (widget.initialMeal?.foodSource == FoodSource.custom) return 1;
     return 0;
   }
 
@@ -72,7 +72,7 @@ class _AddFoodPageState extends State<AddFoodPage>
     super.dispose();
   }
 
-  Future<void> _handleSubmitted(Food food, DietLog log) async {
+  Future<void> _handleSubmitted(Food food, Meal meal) async {
     final t = AppStrings.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -95,21 +95,21 @@ class _AddFoodPageState extends State<AddFoodPage>
         return;
       }
 
-      final dietLogRepository = context.read<DietLogRepository>();
+      final mealRepository = context.read<MealRepository>();
 
-      // A new log always adds/updates its food in the quick-input catalogue.
-      // Editing an old log must not create a catalogue entry unless the user
+      // A new meal always adds/updates its food in the quick-input catalogue.
+      // Editing an old meal must not create a catalogue entry unless the user
       // explicitly selected an existing food.
-      if (widget.initialLog == null || food.id > 0) {
+      if (widget.initialMeal == null || food.id > 0) {
         food.lastUsedTime = DateTime.now();
         await foodRepository.saveFood(food);
       }
-      await dietLogRepository.saveDietLog(log);
+      await mealRepository.saveMeal(meal);
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            widget.initialLog == null ? t.addedSuccess : t.updatedSuccess,
+            widget.initialMeal == null ? t.addedSuccess : t.updatedSuccess,
           ),
           duration: const Duration(seconds: 2),
         ),
@@ -124,7 +124,7 @@ class _AddFoodPageState extends State<AddFoodPage>
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
-    final isEditing = widget.initialLog != null;
+    final isEditing = widget.initialMeal != null;
 
     final title = widget.catalogueMode
         ? (widget.initialFood == null
@@ -134,14 +134,14 @@ class _AddFoodPageState extends State<AddFoodPage>
 
     final forms = <Widget>[
       NutritionTableForm(
-        initialLog: widget.initialLog,
+        initialMeal: widget.initialMeal,
         initialFood: widget.initialFood,
         catalogueMode: widget.catalogueMode,
         initialDate: widget.initialDate,
         onSubmit: _handleSubmitted,
       ),
       DirectInputForm(
-        initialLog: widget.initialLog,
+        initialMeal: widget.initialMeal,
         initialFood: widget.initialFood,
         catalogueMode: widget.catalogueMode,
         initialDate: widget.initialDate,

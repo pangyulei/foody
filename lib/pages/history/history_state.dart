@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../models/daily_log_summary.dart';
+import '../../models/meal.dart';
 
 abstract class HistoryState extends Equatable {
   const HistoryState();
@@ -14,12 +14,13 @@ class HistoryInitial extends HistoryState {}
 class HistoryLoading extends HistoryState {}
 
 class HistoryLoaded extends HistoryState {
-  final List<DailyLogSummary> summaries;
+  /// One list per day, newest day first.
+  final List<List<Meal>> days;
 
-  const HistoryLoaded({required this.summaries});
+  const HistoryLoaded({required this.days});
 
   @override
-  List<Object?> get props => [summaries];
+  List<Object?> get props => [days];
 }
 
 class HistoryError extends HistoryState {

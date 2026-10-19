@@ -25,13 +25,9 @@ class SettingsThemeColorChanged extends SettingsEvent {
   List<Object?> get props => [colorValue];
 }
 
-class SettingsGoalsEnabledChanged extends SettingsEvent {
-  final bool enabled;
-
-  const SettingsGoalsEnabledChanged(this.enabled);
-
-  @override
-  List<Object?> get props => [enabled];
+/// Removes the stored daily goal values.
+class SettingsGoalsCleared extends SettingsEvent {
+  const SettingsGoalsCleared();
 }
 
 class SettingsWeightChanged extends SettingsEvent {

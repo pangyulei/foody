@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foody/extensions/diet_log_extensions.dart';
+import 'package:foody/extensions/meal_extensions.dart';
 import 'package:foody/models/app_settings.dart';
 import 'package:foody/models/custom_food.dart';
-import 'package:foody/models/diet_log.dart';
 import 'package:foody/models/food.dart';
 import 'package:foody/models/food_source.dart';
+import 'package:foody/models/meal.dart';
 import 'package:foody/models/premade_food.dart';
 import 'package:foody/utils/energy_converter.dart';
 
@@ -75,10 +75,44 @@ void main() {
       const settings = AppSettings(weightKg: 0);
       expect(settings.hasGoals, isFalse);
     });
+
+    test('goals require weight and all macro factors', () {
+      expect(const AppSettings(weightKg: 70).hasCompleteGoalData, isTrue);
+      expect(const AppSettings(weightKg: 0).hasCompleteGoalData, isFalse);
+      expect(
+        const AppSettings(weightKg: 70, carbsFactor: 0).hasCompleteGoalData,
+        isFalse,
+      );
+      expect(
+        const AppSettings(weightKg: 70, proteinFactor: 0).hasCompleteGoalData,
+        isFalse,
+      );
+      expect(
+        const AppSettings(weightKg: 70, fatFactor: 0).hasCompleteGoalData,
+        isFalse,
+      );
+    });
+
+    test('old settings JSON with goalsEnabled still loads other values', () {
+      final settings = AppSettings.fromJson({
+        'languageCode': 'en',
+        'themeColorValue': 0xFF2196F3,
+        'goalsEnabled': true,
+        'weightKg': 70,
+        'carbsFactor': 3,
+        'proteinFactor': 1.5,
+        'fatFactor': 1,
+      });
+
+      expect(settings.languageCode, 'en');
+      expect(settings.themeColorValue, 0xFF2196F3);
+      expect(settings.weightKg, 70);
+      expect(settings.hasCompleteGoalData, isTrue);
+    });
   });
 
-  group('DietLog statistics', () {
-    test('DietLog multiplies food nutrition by quantity', () {
+  group('Meal statistics', () {
+    test('Meal multiplies food nutrition by quantity', () {
       final food = CustomFood(
         name: 'A',
         kj: 100,
@@ -86,21 +120,21 @@ void main() {
         protein: 5,
         fat: 2,
       );
-      final log = DietLog.fromFood(
+      final meal = Meal.fromFood(
         food: food,
         quantity: 2,
         createTime: DateTime.now(),
       );
 
-      expect(log.foodName, 'A');
-      expect(log.kj, 100);
-      expect(log.totalKj, 200);
-      expect(log.totalCarbs, 20);
-      expect(log.totalProtein, 10);
-      expect(log.totalFat, 4);
+      expect(meal.foodName, 'A');
+      expect(meal.kj, 100);
+      expect(meal.totalKj, 200);
+      expect(meal.totalCarbs, 20);
+      expect(meal.totalProtein, 10);
+      expect(meal.totalFat, 4);
     });
 
-    test('DietLog.fromFood copies the food snapshot', () {
+    test('Meal.fromFood copies the food snapshot', () {
       final premade = PremadeFood(
         name: '牛奶',
         kj: 502.08,
@@ -119,7 +153,7 @@ void main() {
         fat: 5,
       );
 
-      final premadeLog = DietLog.fromFood(
+      final premadeLog = Meal.fromFood(
         food: premade,
         createTime: DateTime.now(),
       );
@@ -129,10 +163,7 @@ void main() {
       expect(premadeLog.basisAmount, 100);
       expect(premadeLog.unitName, 'ml');
 
-      final customLog = DietLog.fromFood(
-        food: custom,
-        createTime: DateTime.now(),
-      );
+      final customLog = Meal.fromFood(food: custom, createTime: DateTime.now());
       expect(customLog.foodName, '鸡蛋');
       expect(customLog.foodSource, FoodSource.custom);
       expect(customLog.netContent, 1);
@@ -140,7 +171,7 @@ void main() {
       expect(customLog.unitName, '份');
     });
 
-    test('List<DietLog> extension sums logs', () {
+    test('List<Meal> extension sums meals', () {
       final foodA = CustomFood(
         name: 'A',
         kj: 100,
@@ -155,15 +186,15 @@ void main() {
         protein: 10,
         fat: 4,
       );
-      final logs = [
-        DietLog.fromFood(food: foodA, quantity: 1, createTime: DateTime.now()),
-        DietLog.fromFood(food: foodB, quantity: 2, createTime: DateTime.now()),
+      final meals = [
+        Meal.fromFood(food: foodA, quantity: 1, createTime: DateTime.now()),
+        Meal.fromFood(food: foodB, quantity: 2, createTime: DateTime.now()),
       ];
 
-      expect(logs.totalKj, 500);
-      expect(logs.totalCarbs, 50);
-      expect(logs.totalProtein, 25);
-      expect(logs.totalFat, 10);
+      expect(meals.totalKj, 500);
+      expect(meals.totalCarbs, 50);
+      expect(meals.totalProtein, 25);
+      expect(meals.totalFat, 10);
     });
   });
 }

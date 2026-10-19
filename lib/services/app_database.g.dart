@@ -1043,12 +1043,11 @@ class CustomFoodsCompanion extends UpdateCompanion<CustomFoodRow> {
   }
 }
 
-class $DietLogsTable extends DietLogs
-    with TableInfo<$DietLogsTable, DietLogRow> {
+class $MealsTable extends Meals with TableInfo<$MealsTable, MealRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $DietLogsTable(this.attachedDatabase, [this._alias]);
+  $MealsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -1206,10 +1205,10 @@ class $DietLogsTable extends DietLogs
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'diet_logs';
+  static const String $name = 'meals';
   @override
   VerificationContext validateIntegrity(
-    Insertable<DietLogRow> instance, {
+    Insertable<MealRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -1320,9 +1319,9 @@ class $DietLogsTable extends DietLogs
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  DietLogRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  MealRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return DietLogRow(
+    return MealRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -1379,12 +1378,12 @@ class $DietLogsTable extends DietLogs
   }
 
   @override
-  $DietLogsTable createAlias(String alias) {
-    return $DietLogsTable(attachedDatabase, alias);
+  $MealsTable createAlias(String alias) {
+    return $MealsTable(attachedDatabase, alias);
   }
 }
 
-class DietLogRow extends DataClass implements Insertable<DietLogRow> {
+class MealRow extends DataClass implements Insertable<MealRow> {
   final int id;
   final String foodName;
   final double kj;
@@ -1398,7 +1397,7 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
   final double quantity;
   final DateTime createTime;
   final String? note;
-  const DietLogRow({
+  const MealRow({
     required this.id,
     required this.foodName,
     required this.kj,
@@ -1434,8 +1433,8 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
     return map;
   }
 
-  DietLogsCompanion toCompanion(bool nullToAbsent) {
-    return DietLogsCompanion(
+  MealsCompanion toCompanion(bool nullToAbsent) {
+    return MealsCompanion(
       id: Value(id),
       foodName: Value(foodName),
       kj: Value(kj),
@@ -1452,12 +1451,12 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
     );
   }
 
-  factory DietLogRow.fromJson(
+  factory MealRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return DietLogRow(
+    return MealRow(
       id: serializer.fromJson<int>(json['id']),
       foodName: serializer.fromJson<String>(json['foodName']),
       kj: serializer.fromJson<double>(json['kj']),
@@ -1493,7 +1492,7 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
     };
   }
 
-  DietLogRow copyWith({
+  MealRow copyWith({
     int? id,
     String? foodName,
     double? kj,
@@ -1507,7 +1506,7 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
     double? quantity,
     DateTime? createTime,
     Value<String?> note = const Value.absent(),
-  }) => DietLogRow(
+  }) => MealRow(
     id: id ?? this.id,
     foodName: foodName ?? this.foodName,
     kj: kj ?? this.kj,
@@ -1522,8 +1521,8 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
     createTime: createTime ?? this.createTime,
     note: note.present ? note.value : this.note,
   );
-  DietLogRow copyWithCompanion(DietLogsCompanion data) {
-    return DietLogRow(
+  MealRow copyWithCompanion(MealsCompanion data) {
+    return MealRow(
       id: data.id.present ? data.id.value : this.id,
       foodName: data.foodName.present ? data.foodName.value : this.foodName,
       kj: data.kj.present ? data.kj.value : this.kj,
@@ -1550,7 +1549,7 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
 
   @override
   String toString() {
-    return (StringBuffer('DietLogRow(')
+    return (StringBuffer('MealRow(')
           ..write('id: $id, ')
           ..write('foodName: $foodName, ')
           ..write('kj: $kj, ')
@@ -1587,7 +1586,7 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is DietLogRow &&
+      (other is MealRow &&
           other.id == this.id &&
           other.foodName == this.foodName &&
           other.kj == this.kj &&
@@ -1603,7 +1602,7 @@ class DietLogRow extends DataClass implements Insertable<DietLogRow> {
           other.note == this.note);
 }
 
-class DietLogsCompanion extends UpdateCompanion<DietLogRow> {
+class MealsCompanion extends UpdateCompanion<MealRow> {
   final Value<int> id;
   final Value<String> foodName;
   final Value<double> kj;
@@ -1617,7 +1616,7 @@ class DietLogsCompanion extends UpdateCompanion<DietLogRow> {
   final Value<double> quantity;
   final Value<DateTime> createTime;
   final Value<String?> note;
-  const DietLogsCompanion({
+  const MealsCompanion({
     this.id = const Value.absent(),
     this.foodName = const Value.absent(),
     this.kj = const Value.absent(),
@@ -1632,7 +1631,7 @@ class DietLogsCompanion extends UpdateCompanion<DietLogRow> {
     this.createTime = const Value.absent(),
     this.note = const Value.absent(),
   });
-  DietLogsCompanion.insert({
+  MealsCompanion.insert({
     this.id = const Value.absent(),
     required String foodName,
     required double kj,
@@ -1657,7 +1656,7 @@ class DietLogsCompanion extends UpdateCompanion<DietLogRow> {
        unitName = Value(unitName),
        quantity = Value(quantity),
        createTime = Value(createTime);
-  static Insertable<DietLogRow> custom({
+  static Insertable<MealRow> custom({
     Expression<int>? id,
     Expression<String>? foodName,
     Expression<double>? kj,
@@ -1689,7 +1688,7 @@ class DietLogsCompanion extends UpdateCompanion<DietLogRow> {
     });
   }
 
-  DietLogsCompanion copyWith({
+  MealsCompanion copyWith({
     Value<int>? id,
     Value<String>? foodName,
     Value<double>? kj,
@@ -1704,7 +1703,7 @@ class DietLogsCompanion extends UpdateCompanion<DietLogRow> {
     Value<DateTime>? createTime,
     Value<String?>? note,
   }) {
-    return DietLogsCompanion(
+    return MealsCompanion(
       id: id ?? this.id,
       foodName: foodName ?? this.foodName,
       kj: kj ?? this.kj,
@@ -1768,7 +1767,7 @@ class DietLogsCompanion extends UpdateCompanion<DietLogRow> {
 
   @override
   String toString() {
-    return (StringBuffer('DietLogsCompanion(')
+    return (StringBuffer('MealsCompanion(')
           ..write('id: $id, ')
           ..write('foodName: $foodName, ')
           ..write('kj: $kj, ')
@@ -1792,7 +1791,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $PremadeFoodsTable premadeFoods = $PremadeFoodsTable(this);
   late final $CustomFoodsTable customFoods = $CustomFoodsTable(this);
-  late final $DietLogsTable dietLogs = $DietLogsTable(this);
+  late final $MealsTable meals = $MealsTable(this);
   late final Index idxPremadeFoodsLastUsed = Index(
     'idx_premade_foods_last_used',
     'CREATE INDEX idx_premade_foods_last_used ON premade_foods (last_used_time)',
@@ -1801,9 +1800,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_custom_foods_last_used',
     'CREATE INDEX idx_custom_foods_last_used ON custom_foods (last_used_time)',
   );
-  late final Index idxDietLogsCreateTime = Index(
-    'idx_diet_logs_create_time',
-    'CREATE INDEX idx_diet_logs_create_time ON diet_logs (create_time)',
+  late final Index idxMealsCreateTime = Index(
+    'idx_meals_create_time',
+    'CREATE INDEX idx_meals_create_time ON meals (create_time)',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -1812,10 +1811,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     premadeFoods,
     customFoods,
-    dietLogs,
+    meals,
     idxPremadeFoodsLastUsed,
     idxCustomFoodsLastUsed,
-    idxDietLogsCreateTime,
+    idxMealsCreateTime,
   ];
 }
 
@@ -2366,7 +2365,7 @@ typedef $$CustomFoodsTableProcessedTableManager =
       CustomFoodRow,
       PrefetchHooks Function()
     >;
-typedef $$DietLogsTableCreateCompanionBuilder = DietLogsCompanion Function({
+typedef $$MealsTableCreateCompanionBuilder = MealsCompanion Function({
   Value<int> id,
   required String foodName,
   required double kj,
@@ -2381,7 +2380,7 @@ typedef $$DietLogsTableCreateCompanionBuilder = DietLogsCompanion Function({
   required DateTime createTime,
   Value<String?> note,
 });
-typedef $$DietLogsTableUpdateCompanionBuilder = DietLogsCompanion Function({
+typedef $$MealsTableUpdateCompanionBuilder = MealsCompanion Function({
   Value<int> id,
   Value<String> foodName,
   Value<double> kj,
@@ -2397,9 +2396,8 @@ typedef $$DietLogsTableUpdateCompanionBuilder = DietLogsCompanion Function({
   Value<String?> note,
 });
 
-class $$DietLogsTableFilterComposer
-    extends Composer<_$AppDatabase, $DietLogsTable> {
-  $$DietLogsTableFilterComposer({
+class $$MealsTableFilterComposer extends Composer<_$AppDatabase, $MealsTable> {
+  $$MealsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2472,9 +2470,9 @@ class $$DietLogsTableFilterComposer
   );
 }
 
-class $$DietLogsTableOrderingComposer
-    extends Composer<_$AppDatabase, $DietLogsTable> {
-  $$DietLogsTableOrderingComposer({
+class $$MealsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MealsTable> {
+  $$MealsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2547,9 +2545,9 @@ class $$DietLogsTableOrderingComposer
   );
 }
 
-class $$DietLogsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $DietLogsTable> {
-  $$DietLogsTableAnnotationComposer({
+class $$MealsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MealsTable> {
+  $$MealsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2604,35 +2602,32 @@ class $$DietLogsTableAnnotationComposer
       $composableBuilder(column: $table.note, builder: (column) => column);
 }
 
-class $$DietLogsTableTableManager
+class $$MealsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $DietLogsTable,
-          DietLogRow,
-          $$DietLogsTableFilterComposer,
-          $$DietLogsTableOrderingComposer,
-          $$DietLogsTableAnnotationComposer,
-          $$DietLogsTableCreateCompanionBuilder,
-          $$DietLogsTableUpdateCompanionBuilder,
-          (
-            DietLogRow,
-            BaseReferences<_$AppDatabase, $DietLogsTable, DietLogRow>,
-          ),
-          DietLogRow,
+          $MealsTable,
+          MealRow,
+          $$MealsTableFilterComposer,
+          $$MealsTableOrderingComposer,
+          $$MealsTableAnnotationComposer,
+          $$MealsTableCreateCompanionBuilder,
+          $$MealsTableUpdateCompanionBuilder,
+          (MealRow, BaseReferences<_$AppDatabase, $MealsTable, MealRow>),
+          MealRow,
           PrefetchHooks Function()
         > {
-  $$DietLogsTableTableManager(_$AppDatabase db, $DietLogsTable table)
+  $$MealsTableTableManager(_$AppDatabase db, $MealsTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$DietLogsTableFilterComposer($db: db, $table: table),
+              $$MealsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$DietLogsTableOrderingComposer($db: db, $table: table),
+              $$MealsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$DietLogsTableAnnotationComposer($db: db, $table: table),
+              $$MealsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -2648,7 +2643,7 @@ class $$DietLogsTableTableManager
                 Value<double> quantity = const Value.absent(),
                 Value<DateTime> createTime = const Value.absent(),
                 Value<String?> note = const Value.absent(),
-              }) => DietLogsCompanion(
+              }) => MealsCompanion(
                 id: id,
                 foodName: foodName,
                 kj: kj,
@@ -2678,7 +2673,7 @@ class $$DietLogsTableTableManager
                 required double quantity,
                 required DateTime createTime,
                 Value<String?> note = const Value.absent(),
-              }) => DietLogsCompanion.insert(
+              }) => MealsCompanion.insert(
                 id: id,
                 foodName: foodName,
                 kj: kj,
@@ -2696,8 +2691,8 @@ class $$DietLogsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable<$DietLogsTable, DietLogRow>(table),
-                  BaseReferences<_$AppDatabase, $DietLogsTable, DietLogRow>(
+                  e.readTable<$MealsTable, MealRow>(table),
+                  BaseReferences<_$AppDatabase, $MealsTable, MealRow>(
                     db,
                     table,
                     e,
@@ -2710,18 +2705,18 @@ class $$DietLogsTableTableManager
       );
 }
 
-typedef $$DietLogsTableProcessedTableManager =
+typedef $$MealsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $DietLogsTable,
-      DietLogRow,
-      $$DietLogsTableFilterComposer,
-      $$DietLogsTableOrderingComposer,
-      $$DietLogsTableAnnotationComposer,
-      $$DietLogsTableCreateCompanionBuilder,
-      $$DietLogsTableUpdateCompanionBuilder,
-      (DietLogRow, BaseReferences<_$AppDatabase, $DietLogsTable, DietLogRow>),
-      DietLogRow,
+      $MealsTable,
+      MealRow,
+      $$MealsTableFilterComposer,
+      $$MealsTableOrderingComposer,
+      $$MealsTableAnnotationComposer,
+      $$MealsTableCreateCompanionBuilder,
+      $$MealsTableUpdateCompanionBuilder,
+      (MealRow, BaseReferences<_$AppDatabase, $MealsTable, MealRow>),
+      MealRow,
       PrefetchHooks Function()
     >;
 
@@ -2732,6 +2727,6 @@ class $AppDatabaseManager {
       $$PremadeFoodsTableTableManager(_db, _db.premadeFoods);
   $$CustomFoodsTableTableManager get customFoods =>
       $$CustomFoodsTableTableManager(_db, _db.customFoods);
-  $$DietLogsTableTableManager get dietLogs =>
-      $$DietLogsTableTableManager(_db, _db.dietLogs);
+  $$MealsTableTableManager get meals =>
+      $$MealsTableTableManager(_db, _db.meals);
 }

@@ -106,7 +106,7 @@ class SettingsPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // 每日目标：开关在外，具体数值在新页面编辑
+            // 每日目标：数据完整时自动在今日页显示进度
             _SectionTitle(title: t.dailyGoals, icon: Icons.flag_outlined),
             Card(
               elevation: 0,
@@ -114,40 +114,38 @@ class SettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    value: settings.goalsEnabled,
-                    onChanged: (enabled) =>
-                        bloc.add(SettingsGoalsEnabledChanged(enabled)),
-                    title: Text(
-                      t.enableGoals,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+              child: ListTile(
+                leading: const Icon(Icons.tune),
+                title: Text(t.editDailyGoals),
+                subtitle: Text(
+                  settings.hasCompleteGoalData
+                      ? '${t.targetsLine(settings.targetCarbs, settings.targetProtein, settings.targetFat)}\n${t.approxKcal(settings.targetKcal)}'
+                      : t.goalsNotSet,
+                  style: const TextStyle(fontSize: 12),
+                ),
+                isThreeLine: settings.hasCompleteGoalData,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (settings.hasCompleteGoalData)
+                      IconButton(
+                        tooltip: t.clearGoals,
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          bloc.add(const SettingsGoalsCleared());
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(t.goalsCleared)),
+                          );
+                        },
                       ),
-                    ),
-                    secondary: const Icon(Icons.speed),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.tune),
-                    title: Text(t.editDailyGoals),
-                    subtitle: Text(
-                      settings.hasGoals
-                          ? '${t.targetsLine(settings.targetCarbs, settings.targetProtein, settings.targetFat)}\n${t.approxKcal(settings.targetKcal)}'
-                          : t.goalsNotSet,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    isThreeLine: settings.hasGoals,
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const GoalsPage()),
-                      );
-                    },
-                  ),
-                ],
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+                onTap: () {
+                  Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const GoalsPage()));
+                },
               ),
             ),
             const SizedBox(height: 20),

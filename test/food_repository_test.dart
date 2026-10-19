@@ -1,10 +1,10 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foody/models/custom_food.dart';
-import 'package:foody/models/diet_log.dart';
+import 'package:foody/models/meal.dart';
 import 'package:foody/models/premade_food.dart';
-import 'package:foody/repositories/diet_log_repository.dart';
 import 'package:foody/repositories/food_repository.dart';
+import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/services/app_database.dart';
 
 void main() {
@@ -85,9 +85,9 @@ void main() {
       expect(foods.whereType<PremadeFood>(), hasLength(1));
     });
 
-    test('deleting a food keeps existing diet logs', () async {
-      final dietLogRepository = DietLogRepository(database);
-      addTearDown(dietLogRepository.dispose);
+    test('deleting a food keeps existing diet meals', () async {
+      final mealRepository = MealRepository(database);
+      addTearDown(mealRepository.dispose);
 
       final food = CustomFood(
         name: '鸡蛋',
@@ -98,21 +98,21 @@ void main() {
       );
       await repository.saveFood(food);
 
-      final log = DietLog.fromFood(
+      final meal = Meal.fromFood(
         food: food,
         createTime: DateTime(2026, 10, 19, 9),
       );
-      await dietLogRepository.saveDietLog(log);
+      await mealRepository.saveMeal(meal);
 
       expect(await repository.deleteFood(food), isTrue);
       expect(await repository.getAllFoods(), isEmpty);
 
-      final logs = await dietLogRepository.getDietLogsForDate(
+      final meals = await mealRepository.getMealsForDate(
         DateTime(2026, 10, 19),
       );
-      expect(logs, hasLength(1));
-      expect(logs.single.foodName, '鸡蛋');
-      expect(logs.single.kj, 300);
+      expect(meals, hasLength(1));
+      expect(meals.single.foodName, '鸡蛋');
+      expect(meals.single.kj, 300);
     });
   });
 }

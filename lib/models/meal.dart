@@ -3,12 +3,12 @@ import 'food.dart';
 import 'food_source.dart';
 import 'premade_food.dart';
 
-/// A one-time eating record.
+/// A one-time meal record.
 ///
-/// The food's attributes are copied into the log, so editing or deleting a
+/// The food's attributes are copied into the meal, so editing or deleting a
 /// [Food] later never changes historical records. Food is only a reusable
 /// input/catalogue model.
-class DietLog {
+class Meal {
   int id;
 
   String foodName;
@@ -44,7 +44,7 @@ class DietLog {
 
   String? note;
 
-  DietLog({
+  Meal({
     this.id = 0,
     required this.foodName,
     required this.kj,
@@ -60,8 +60,8 @@ class DietLog {
     this.note,
   });
 
-  /// Creates a log by copying the food's current attributes.
-  factory DietLog.fromFood({
+  /// Creates a meal by copying the food's current attributes.
+  factory Meal.fromFood({
     int id = 0,
     required Food food,
     double quantity = 1.0,
@@ -69,7 +69,7 @@ class DietLog {
     String? note,
   }) {
     final premade = food is PremadeFood ? food : null;
-    return DietLog(
+    return Meal(
       id: id,
       foodName: food.name,
       kj: food.kj,
@@ -87,21 +87,21 @@ class DietLog {
     );
   }
 
-  /// Decoded source of this log's snapshot.
+  /// Decoded source of this meal's snapshot.
   FoodSource get foodSource => FoodSource.fromValue(rawFoodSource);
 
-  /// Total energy for this log (kJ)
+  /// Total energy for this meal (kJ)
   double get totalKj => kj * quantity;
 
-  /// Total calories for this log (kcal)
+  /// Total calories for this meal (kcal)
   double get calories => EnergyConverter.kjToKcal(totalKj);
 
-  /// Total carbohydrates for this log (g)
+  /// Total carbohydrates for this meal (g)
   double get totalCarbs => carbs * quantity;
 
-  /// Total protein for this log (g)
+  /// Total protein for this meal (g)
   double get totalProtein => protein * quantity;
 
-  /// Total fat for this log (g)
+  /// Total fat for this meal (g)
   double get totalFat => fat * quantity;
 }

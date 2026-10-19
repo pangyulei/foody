@@ -27,11 +27,11 @@ class RefreshHistoryDetail extends HistoryDetailEvent {
   const RefreshHistoryDetail();
 }
 
-/// Delete one of the selected day's diet logs.
-class DeleteHistoryDetailLog extends HistoryDetailEvent {
+/// Delete one of the selected day's meals.
+class DeleteHistoryDetailMeal extends HistoryDetailEvent {
   final int id;
 
-  const DeleteHistoryDetailLog(this.id);
+  const DeleteHistoryDetailMeal(this.id);
 
   @override
   List<Object?> get props => [id];

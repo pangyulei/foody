@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../repositories/diet_log_repository.dart';
+import '../../repositories/meal_repository.dart';
 import 'history_detail_event.dart';
 import 'history_detail_state.dart';
 
 class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
-  final DietLogRepository repository;
+  final MealRepository repository;
   DateTime _date;
   StreamSubscription<void>? _changesSubscription;
 
@@ -17,7 +17,7 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
     on<LoadHistoryDetail>((event, emit) => _load(emit, showLoading: true));
     on<SelectHistoryDetailDate>(_onSelectDate);
     on<RefreshHistoryDetail>((event, emit) => _load(emit, showLoading: false));
-    on<DeleteHistoryDetailLog>(_onDelete);
+    on<DeleteHistoryDetailMeal>(_onDelete);
     _changesSubscription = repository.changes.listen((_) {
       add(const RefreshHistoryDetail());
     });
@@ -41,11 +41,11 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
     final date = _date;
     if (showLoading) emit(HistoryDetailLoading(date));
     try {
-      final logs = await repository.getDietLogsForDate(date);
+      final meals = await repository.getMealsForDate(date);
       // Drop a result that belongs to a day the user already switched away
       // from while the query was running.
       if (date != _date) return;
-      emit(HistoryDetailLoaded(date: date, logs: logs));
+      emit(HistoryDetailLoaded(date: date, meals: meals));
     } catch (e) {
       if (date != _date) return;
       emit(HistoryDetailError(date, e.toString()));
@@ -53,11 +53,11 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
   }
 
   Future<void> _onDelete(
-    DeleteHistoryDetailLog event,
+    DeleteHistoryDetailMeal event,
     Emitter<HistoryDetailState> emit,
   ) async {
     try {
-      await repository.deleteDietLog(event.id);
+      await repository.deleteMeal(event.id);
       // The repository change stream triggers a refresh.
     } catch (e) {
       emit(HistoryDetailError(_date, e.toString()));

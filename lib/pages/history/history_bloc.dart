@@ -2,19 +2,19 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../repositories/diet_log_repository.dart';
+import '../../repositories/meal_repository.dart';
 import 'history_event.dart';
 import 'history_state.dart';
 
 class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
-  final DietLogRepository repository;
+  final MealRepository repository;
   StreamSubscription<void>? _changesSubscription;
 
   HistoryBloc({required this.repository}) : super(HistoryInitial()) {
-    on<LoadHistoryLogs>((event, emit) => _load(emit, showLoading: true));
-    on<RefreshHistoryLogs>((event, emit) => _load(emit, showLoading: false));
+    on<LoadHistoryMeals>((event, emit) => _load(emit, showLoading: true));
+    on<RefreshHistoryMeals>((event, emit) => _load(emit, showLoading: false));
     _changesSubscription = repository.changes.listen((_) {
-      add(const RefreshHistoryLogs());
+      add(const RefreshHistoryMeals());
     });
   }
 
@@ -24,8 +24,8 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   }) async {
     if (showLoading) emit(HistoryLoading());
     try {
-      final summaries = await repository.getDailySummaries();
-      emit(HistoryLoaded(summaries: summaries));
+      final days = await repository.getMealsByDay();
+      emit(HistoryLoaded(days: days));
     } catch (e) {
       emit(HistoryError(e.toString()));
     }

@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../models/diet_log.dart';
+import '../../models/meal.dart';
 
 abstract class TodayState extends Equatable {
   const TodayState();
@@ -14,12 +14,12 @@ class TodayInitial extends TodayState {}
 class TodayLoading extends TodayState {}
 
 class TodayLoaded extends TodayState {
-  final List<DietLog> logs;
+  final List<Meal> meals;
 
-  const TodayLoaded({required this.logs});
+  const TodayLoaded({required this.meals});
 
   @override
-  List<Object?> get props => [logs];
+  List<Object?> get props => [meals];
 }
 
 class TodayError extends TodayState {

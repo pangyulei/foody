@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foody/pages/history_detail/history_detail_page.dart';
-import 'package:foody/repositories/diet_log_repository.dart';
+import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/services/app_database.dart';
 
 void main() {
@@ -11,7 +11,7 @@ void main() {
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
-    final repository = DietLogRepository(database);
+    final repository = MealRepository(database);
 
     addTearDown(() async {
       await repository.dispose();

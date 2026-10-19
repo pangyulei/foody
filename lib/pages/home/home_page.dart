@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
                 ).push(MaterialPageRoute(builder: (_) => const AddFoodPage()));
               },
               icon: const Icon(Icons.add),
-              label: Text(t.logAMeal),
+              label: Text(t.addMeal),
             )
           : null,
       bottomNavigationBar: NavigationBar(

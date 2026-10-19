@@ -61,7 +61,7 @@ class _GoalsPageState extends State<GoalsPage> {
         final t = AppStrings.of(context);
         final bloc = context.read<SettingsBloc>();
         final settings = state.settings;
-        final hasWeight = settings.weightKg > 0;
+        final hasCompleteData = settings.hasCompleteGoalData;
 
         return Scaffold(
           appBar: AppBar(title: Text(t.dailyGoals)),
@@ -193,7 +193,7 @@ class _GoalsPageState extends State<GoalsPage> {
                               ],
                             ),
                             const SizedBox(height: 6),
-                            if (hasWeight) ...[
+                            if (hasCompleteData) ...[
                               Text(
                                 t.targetsLine(
                                   settings.targetCarbs,

@@ -20,7 +20,7 @@ class RefreshFoodCatalogue extends FoodCatalogueEvent {
   const RefreshFoodCatalogue();
 }
 
-/// Removes a food from the catalogue. Diet logs are not affected.
+/// Removes a food from the catalogue. Meals are not affected.
 class DeleteFoodCatalogueEntry extends FoodCatalogueEvent {
   final Food food;
 

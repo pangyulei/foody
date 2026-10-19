@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foody/pages/add_food/add_food_page.dart';
-import 'package:foody/repositories/diet_log_repository.dart';
+import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/repositories/food_repository.dart';
 import 'package:foody/services/app_database.dart';
 
@@ -13,10 +13,10 @@ void main() {
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
     final foodRepository = FoodRepository(database);
-    final dietLogRepository = DietLogRepository(database);
+    final mealRepository = MealRepository(database);
 
     addTearDown(() async {
-      await dietLogRepository.dispose();
+      await mealRepository.dispose();
       await foodRepository.dispose();
       await database.close();
     });
@@ -25,7 +25,7 @@ void main() {
       MultiRepositoryProvider(
         providers: [
           RepositoryProvider.value(value: foodRepository),
-          RepositoryProvider.value(value: dietLogRepository),
+          RepositoryProvider.value(value: mealRepository),
         ],
         child: const MaterialApp(home: AddFoodPage()),
       ),

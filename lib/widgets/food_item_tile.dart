@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_strings.dart';
-import '../models/diet_log.dart';
+import '../models/meal.dart';
 import '../models/food_source.dart';
 import '../utils/energy_converter.dart';
 
 class FoodItemTile extends StatelessWidget {
-  final DietLog log;
+  final Meal meal;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
   const FoodItemTile({
     super.key,
-    required this.log,
+    required this.meal,
     required this.onTap,
     required this.onDelete,
   });
@@ -21,10 +21,10 @@ class FoodItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
-    final name = log.foodName;
-    final formattedTime = DateFormat('HH:mm').format(log.createTime);
-    final isTableMode = log.foodSource == FoodSource.premade;
-    final hasQuantity = log.quantity > 0 && (log.quantity - 1.0).abs() > 0.01;
+    final name = meal.foodName;
+    final formattedTime = DateFormat('HH:mm').format(meal.createTime);
+    final isTableMode = meal.foodSource == FoodSource.premade;
+    final hasQuantity = meal.quantity > 0 && (meal.quantity - 1.0).abs() > 0.01;
 
     return Card(
       elevation: 1,
@@ -38,7 +38,7 @@ class FoodItemTile extends StatelessWidget {
             Expanded(
               child: Text(
                 hasQuantity
-                    ? '$name × ${log.quantity % 1 == 0 ? log.quantity.toInt() : log.quantity}'
+                    ? '$name × ${meal.quantity % 1 == 0 ? meal.quantity.toInt() : meal.quantity}'
                     : name,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
@@ -75,7 +75,7 @@ class FoodItemTile extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  EnergyConverter.formatKcal(log.totalKj),
+                  EnergyConverter.formatKcal(meal.totalKj),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -95,16 +95,16 @@ class FoodItemTile extends StatelessWidget {
             const SizedBox(height: 6),
             // 营养元素明细
             Text(
-              t.macrosLine(log.totalCarbs, log.totalProtein, log.totalFat),
+              t.macrosLine(meal.totalCarbs, meal.totalProtein, meal.totalFat),
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            if (log.note != null && log.note!.isNotEmpty) ...[
+            if (meal.note != null && meal.note!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                '${t.notePrefix}${log.note}',
+                '${t.notePrefix}${meal.note}',
                 style: TextStyle(
                   fontSize: 12,
                   fontStyle: FontStyle.italic,

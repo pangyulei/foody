@@ -4,14 +4,14 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foody/models/food_source.dart';
 import 'package:foody/models/premade_food.dart';
-import 'package:foody/repositories/diet_log_repository.dart';
 import 'package:foody/repositories/food_repository.dart';
+import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/services/app_database.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
-  test('v1 diet logs keep their food data after migrating to v4', () async {
+  test('v1 meal data survives migrating to v5', () async {
     final tempDir = await Directory.systemTemp.createTemp('foody_migration');
     final file = File(p.join(tempDir.path, 'foody.sqlite'));
     final raw = sqlite3.open(file.path);
@@ -93,12 +93,12 @@ void main() {
     raw.close();
 
     final database = AppDatabase(NativeDatabase(file));
-    final repository = DietLogRepository(database);
+    final repository = MealRepository(database);
 
-    final logs = await repository.getDietLogsForDate(DateTime(2026, 10, 19));
-    expect(logs, hasLength(2));
+    final meals = await repository.getMealsForDate(DateTime(2026, 10, 19));
+    expect(meals, hasLength(2));
 
-    final milk = logs.firstWhere((log) => log.foodName == '牛奶');
+    final milk = meals.firstWhere((meal) => meal.foodName == '牛奶');
     expect(milk.foodSource, FoodSource.premade);
     expect(milk.kj, 251);
     expect(milk.totalKj, 502);
@@ -109,7 +109,7 @@ void main() {
     expect(milk.note, 'Breakfast');
     expect(milk.createTime, DateTime(2026, 10, 19, 8, 30));
 
-    final egg = logs.firstWhere((log) => log.foodName == '鸡蛋');
+    final egg = meals.firstWhere((meal) => meal.foodName == '鸡蛋');
     expect(egg.foodSource, FoodSource.custom);
     expect(egg.kj, 300);
     expect(egg.totalKj, 300);
@@ -123,7 +123,7 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  test('v3 serving_amount columns migrate to net_content', () async {
+  test('v3 data migrates to the meals table with net_content', () async {
     final tempDir = await Directory.systemTemp.createTemp('foody_migration_v3');
     final file = File(p.join(tempDir.path, 'foody.sqlite'));
     final raw = sqlite3.open(file.path);
@@ -225,7 +225,7 @@ void main() {
 
     final database = AppDatabase(NativeDatabase(file));
     final foodRepository = FoodRepository(database);
-    final dietLogRepository = DietLogRepository(database);
+    final mealRepository = MealRepository(database);
 
     final premadeColumns =
         (await database.customSelect('PRAGMA table_info(premade_foods)').get())
@@ -234,12 +234,23 @@ void main() {
     expect(premadeColumns, contains('net_content'));
     expect(premadeColumns, isNot(contains('serving_amount')));
 
-    final logColumns =
-        (await database.customSelect('PRAGMA table_info(diet_logs)').get())
+    final mealColumns =
+        (await database.customSelect('PRAGMA table_info(meals)').get())
             .map((row) => row.read<String>('name'))
             .toList();
-    expect(logColumns, contains('net_content'));
-    expect(logColumns, isNot(contains('serving_amount')));
+    expect(mealColumns, contains('net_content'));
+    expect(mealColumns, isNot(contains('serving_amount')));
+
+    final tables =
+        (await database
+                .customSelect(
+                  "SELECT name FROM sqlite_master WHERE type = 'table'",
+                )
+                .get())
+            .map((row) => row.read<String>('name'))
+            .toList();
+    expect(tables, contains('meals'));
+    expect(tables, isNot(contains('diet_logs')));
 
     final foods = await foodRepository.getAllFoods();
     expect(foods, hasLength(2));
@@ -249,23 +260,21 @@ void main() {
     expect(milk.netContent, 250);
     expect(milk.basisAmount, 100);
 
-    final logs = await dietLogRepository.getDietLogsForDate(
-      DateTime(2026, 10, 19),
-    );
-    expect(logs, hasLength(2));
+    final meals = await mealRepository.getMealsForDate(DateTime(2026, 10, 19));
+    expect(meals, hasLength(2));
 
-    final milkLog = logs.firstWhere((log) => log.id == 3);
+    final milkLog = meals.firstWhere((meal) => meal.id == 3);
     expect(milkLog.foodName, '牛奶');
     expect(milkLog.netContent, 250);
     expect(milkLog.quantity, 2);
     expect(milkLog.note, 'Breakfast');
 
-    final eggLog = logs.firstWhere((log) => log.id == 4);
+    final eggLog = meals.firstWhere((meal) => meal.id == 4);
     expect(eggLog.foodName, '鸡蛋');
     expect(eggLog.netContent, 1);
     expect(eggLog.note, 'Lunch');
 
-    await dietLogRepository.dispose();
+    await mealRepository.dispose();
     await database.close();
     await tempDir.delete(recursive: true);
   });

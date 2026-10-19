@@ -3,23 +3,23 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_strings.dart';
-import '../../../models/diet_log.dart';
 import '../../../models/food.dart';
 import '../../../models/food_source.dart';
+import '../../../models/meal.dart';
 import '../../../models/premade_food.dart';
 import 'nutrition_preview_card.dart';
 import 'quick_food_selector.dart';
 
 class NutritionTableForm extends StatefulWidget {
-  final DietLog? initialLog;
+  final Meal? initialMeal;
   final Food? initialFood;
   final bool catalogueMode;
   final DateTime? initialDate;
-  final Function(Food food, DietLog log) onSubmit;
+  final Function(Food food, Meal meal) onSubmit;
 
   const NutritionTableForm({
     super.key,
-    this.initialLog,
+    this.initialMeal,
     this.initialFood,
     this.catalogueMode = false,
     this.initialDate,
@@ -50,10 +50,10 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
   @override
   void initState() {
     super.initState();
-    final log = widget.initialLog;
+    final meal = widget.initialMeal;
     final food = widget.initialFood;
     _selectedFood = food;
-    _nameController = TextEditingController(text: log?.foodName ?? '');
+    _nameController = TextEditingController(text: meal?.foodName ?? '');
     _netContentController = TextEditingController(text: '200');
     _unitAmountController = TextEditingController(text: '100');
     _carbsController = TextEditingController();
@@ -61,13 +61,14 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     _fatController = TextEditingController();
     _kjController = TextEditingController();
     _quantityController = TextEditingController(
-      text: _formatNumber(log?.quantity ?? 1.0),
+      text: _formatNumber(meal?.quantity ?? 1.0),
     );
-    _noteController = TextEditingController(text: log?.note ?? '');
-    _selectedDateTime = log?.createTime ?? widget.initialDate ?? DateTime.now();
+    _noteController = TextEditingController(text: meal?.note ?? '');
+    _selectedDateTime =
+        meal?.createTime ?? widget.initialDate ?? DateTime.now();
 
-    if (log != null) {
-      _applyLog(log);
+    if (meal != null) {
+      _applyMeal(meal);
     }
     if (food != null) {
       _applyFood(food);
@@ -136,13 +137,13 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
   }
 
   /// 从历史记录的快照还原表单（不引用 Food 表）。
-  void _applyLog(DietLog log) {
-    _nameController.text = log.foodName;
-    final isTable = log.foodSource == FoodSource.premade;
-    final netContent = isTable && log.netContent > 0 ? log.netContent : 100.0;
-    final basis = isTable && log.basisAmount > 0 ? log.basisAmount : 100.0;
-    if (isTable && (log.unitName == 'ml' || log.unitName == 'g')) {
-      _unitName = log.unitName;
+  void _applyMeal(Meal meal) {
+    _nameController.text = meal.foodName;
+    final isTable = meal.foodSource == FoodSource.premade;
+    final netContent = isTable && meal.netContent > 0 ? meal.netContent : 100.0;
+    final basis = isTable && meal.basisAmount > 0 ? meal.basisAmount : 100.0;
+    if (isTable && (meal.unitName == 'ml' || meal.unitName == 'g')) {
+      _unitName = meal.unitName;
     } else {
       _unitName = 'ml';
     }
@@ -150,10 +151,10 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     final ratio = basis / netContent;
     _netContentController.text = _formatNumber(netContent);
     _unitAmountController.text = _formatNumber(basis);
-    _kjController.text = _formatNumber(log.kj * ratio);
-    _carbsController.text = _formatNumber(log.carbs * ratio);
-    _proteinController.text = _formatNumber(log.protein * ratio);
-    _fatController.text = _formatNumber(log.fat * ratio);
+    _kjController.text = _formatNumber(meal.kj * ratio);
+    _carbsController.text = _formatNumber(meal.carbs * ratio);
+    _proteinController.text = _formatNumber(meal.protein * ratio);
+    _fatController.text = _formatNumber(meal.fat * ratio);
   }
 
   void _populateFromHistory(Food food) {
@@ -251,15 +252,15 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
               t.unitServing,
             );
 
-      final log = DietLog.fromFood(
-        id: widget.initialLog?.id ?? 0,
+      final meal = Meal.fromFood(
+        id: widget.initialMeal?.id ?? 0,
         food: food,
         quantity: quantity.toDouble(),
         createTime: _selectedDateTime,
         note: noteText,
       );
 
-      widget.onSubmit(food, log);
+      widget.onSubmit(food, meal);
     }
   }
 
@@ -472,7 +473,7 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           ),
           const SizedBox(height: 16),
 
-          // 2. 营养成分表数值 (能量, 碳水, 蛋白质, 脂肪 每一个独占一行，竖着排)
+          // 2. 营养成分表数值
           Card(
             elevation: 0,
             color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -505,8 +506,6 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 能量 (独占一行)
                   TextFormField(
                     controller: _kjController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -532,8 +531,6 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // 碳水化合物 (独占一行)
                   TextFormField(
                     controller: _carbsController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -548,8 +545,6 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 蛋白质 (独占一行)
                   TextFormField(
                     controller: _proteinController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -564,8 +559,6 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 脂肪 (独占一行)
                   TextFormField(
                     controller: _fatController,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -585,7 +578,6 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           ),
           const SizedBox(height: 16),
 
-          // 底部实际摄入总量预览
           NutritionPreviewCard(
             title: t.calculatedIntakeTitle,
             subtitle: widget.catalogueMode
@@ -603,7 +595,6 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           if (!widget.catalogueMode) ...[
             const SizedBox(height: 16),
 
-            // 备注
             TextFormField(
               controller: _noteController,
               decoration: InputDecoration(
@@ -615,7 +606,6 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
             ),
             const SizedBox(height: 16),
 
-            // 时间选择
             ListTile(
               tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               shape: RoundedRectangleBorder(
@@ -632,14 +622,15 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           ],
           const SizedBox(height: 24),
 
-          // 提交按钮
           FilledButton.icon(
             onPressed: _submit,
             icon: const Icon(Icons.check),
             label: Text(
               widget.catalogueMode
                   ? (widget.initialFood == null ? t.saveFood : t.updateFood)
-                  : (widget.initialLog == null ? t.saveRecord : t.updateRecord),
+                  : (widget.initialMeal == null
+                        ? t.saveRecord
+                        : t.updateRecord),
             ),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
