@@ -23,25 +23,17 @@ class AddFoodPage extends StatefulWidget {
   /// Default date/time for a new meal, e.g. when adding from a history day.
   final DateTime? initialDate;
 
-  const AddFoodPage({
-    super.key,
-    this.initialMeal,
-    this.initialFood,
-    this.catalogueMode = false,
-    this.initialDate,
-  });
+  const AddFoodPage({super.key, this.initialMeal, this.initialFood, this.catalogueMode = false, this.initialDate});
 
   @override
   State<AddFoodPage> createState() => _AddFoodPageState();
 }
 
-class _AddFoodPageState extends State<AddFoodPage>
-    with SingleTickerProviderStateMixin {
+class _AddFoodPageState extends State<AddFoodPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   /// Editing a saved food keeps its type, so only one form is shown.
-  bool get _isEditingCatalogueFood =>
-      widget.catalogueMode && widget.initialFood != null;
+  bool get _isEditingCatalogueFood => widget.catalogueMode && widget.initialFood != null;
 
   int get _initialTabIndex {
     if (widget.catalogueMode && widget.initialFood is CustomFood) return 1;
@@ -52,11 +44,8 @@ class _AddFoodPageState extends State<AddFoodPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-      initialIndex: _initialTabIndex,
-    )..addListener(_handleTabChanged);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: _initialTabIndex)
+      ..addListener(_handleTabChanged);
   }
 
   /// The hidden form would otherwise keep the keyboard and cursor attached to
@@ -85,12 +74,7 @@ class _AddFoodPageState extends State<AddFoodPage>
         }
         await foodRepository.saveFood(food);
         if (!mounted) return;
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(t.foodSaved),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(t.foodSaved), duration: const Duration(seconds: 2)));
         navigator.pop();
         return;
       }
@@ -108,9 +92,7 @@ class _AddFoodPageState extends State<AddFoodPage>
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            widget.initialMeal == null ? t.addedSuccess : t.updatedSuccess,
-          ),
+          content: Text(widget.initialMeal == null ? t.addedSuccess : t.updatedSuccess),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -127,9 +109,7 @@ class _AddFoodPageState extends State<AddFoodPage>
     final isEditing = widget.initialMeal != null;
 
     final title = widget.catalogueMode
-        ? (widget.initialFood == null
-              ? t.addCatalogueFoodTitle
-              : t.editCatalogueFoodTitle)
+        ? (widget.initialFood == null ? t.addCatalogueFoodTitle : t.editCatalogueFoodTitle)
         : (isEditing ? t.editFoodTitle : t.addFoodTitle);
 
     final forms = <Widget>[
@@ -157,20 +137,12 @@ class _AddFoodPageState extends State<AddFoodPage>
             : TabBar(
                 controller: _tabController,
                 tabs: [
-                  Tab(
-                    icon: const Icon(Icons.receipt_long),
-                    text: t.tabLabelInput,
-                  ),
-                  Tab(
-                    icon: const Icon(Icons.edit_note),
-                    text: t.tabDirectInput,
-                  ),
+                  Tab(icon: const Icon(Icons.receipt_long), text: t.tabPackaged),
+                  Tab(icon: const Icon(Icons.edit_note), text: t.tabCustom),
                 ],
               ),
       ),
-      body: _isEditingCatalogueFood
-          ? forms[_initialTabIndex]
-          : TabBarView(controller: _tabController, children: forms),
+      body: _isEditingCatalogueFood ? forms[_initialTabIndex] : TabBarView(controller: _tabController, children: forms),
     );
   }
 }

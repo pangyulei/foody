@@ -62,8 +62,8 @@ class AppStrings {
   // 添加 / 编辑页面
   String get addFoodTitle => _en ? 'Add Meal' : '添加饮食记录';
   String get editFoodTitle => _en ? 'Edit Meal' : '编辑饮食记录';
-  String get tabLabelInput => _en ? 'By nutrition label' : '按成分表记录';
-  String get tabDirectInput => _en ? 'Direct input' : '直接输入';
+  String get tabPackaged => _en ? 'Packaged' : '包装食品';
+  String get tabCustom => _en ? 'Custom' : '自定义';
   String get addedSuccess => _en ? 'Added!' : '添加成功！';
   String get updatedSuccess => _en ? 'Updated!' : '更新成功！';
 
