@@ -7,9 +7,9 @@ import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
 
-@DataClassName('PremadeFoodRow')
-@TableIndex(name: 'idx_premade_foods_last_used', columns: {#lastUsedTime})
-class PremadeFoods extends Table {
+@DataClassName('PackagedFoodRow')
+@TableIndex(name: 'idx_packaged_foods_last_used', columns: {#lastUsedTime})
+class PackagedFoods extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   TextColumn get name => text()();
@@ -81,14 +81,14 @@ class Meals extends Table {
   TextColumn get note => text().nullable()();
 }
 
-@DriftDatabase(tables: [PremadeFoods, CustomFoods, Meals])
+@DriftDatabase(tables: [PackagedFoods, CustomFoods, Meals])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   AppDatabase.defaults() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,6 +105,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await _migrateV4ToV5();
+      }
+      if (from < 6) {
+        await _migrateV5ToV6();
       }
     },
     beforeOpen: (details) async {
@@ -173,9 +176,7 @@ class AppDatabase extends _$AppDatabase {
 
     await customStatement('DROP TABLE diet_logs');
     await customStatement('ALTER TABLE diet_logs_v2 RENAME TO diet_logs');
-    await customStatement(
-      'CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)',
-    );
+    await customStatement('CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)');
   }
 
   /// v2 stored the source as the text 'table'/'direct'. v3 stores it as an
@@ -234,9 +235,7 @@ class AppDatabase extends _$AppDatabase {
 
     await customStatement('DROP TABLE diet_logs');
     await customStatement('ALTER TABLE diet_logs_v3 RENAME TO diet_logs');
-    await customStatement(
-      'CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)',
-    );
+    await customStatement('CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)');
   }
 
   /// v3 named the net content column `serving_amount`. v4 renames it to
@@ -286,9 +285,7 @@ class AppDatabase extends _$AppDatabase {
       ''');
 
       await customStatement('DROP TABLE premade_foods');
-      await customStatement(
-        'ALTER TABLE premade_foods_v4 RENAME TO premade_foods',
-      );
+      await customStatement('ALTER TABLE premade_foods_v4 RENAME TO premade_foods');
       await customStatement(
         'CREATE INDEX idx_premade_foods_last_used '
         'ON premade_foods(last_used_time)',
@@ -347,9 +344,7 @@ class AppDatabase extends _$AppDatabase {
 
       await customStatement('DROP TABLE diet_logs');
       await customStatement('ALTER TABLE diet_logs_v4 RENAME TO diet_logs');
-      await customStatement(
-        'CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)',
-      );
+      await customStatement('CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)');
     });
   }
 
@@ -409,8 +404,20 @@ class AppDatabase extends _$AppDatabase {
       ''');
 
       await customStatement('DROP TABLE diet_logs');
+      await customStatement('CREATE INDEX idx_meals_create_time ON meals(create_time)');
+    });
+  }
+
+  /// v5 stored packaged foods in the `premade_foods` table. v6 renames the
+  /// table to `packaged_foods` and recreates its index under the new name.
+  /// `ALTER TABLE ... RENAME TO` keeps every row, id and timestamp.
+  Future<void> _migrateV5ToV6() async {
+    await transaction(() async {
+      await customStatement('ALTER TABLE premade_foods RENAME TO packaged_foods');
+      await customStatement('DROP INDEX IF EXISTS idx_premade_foods_last_used');
       await customStatement(
-        'CREATE INDEX idx_meals_create_time ON meals(create_time)',
+        'CREATE INDEX idx_packaged_foods_last_used '
+        'ON packaged_foods(last_used_time)',
       );
     });
   }

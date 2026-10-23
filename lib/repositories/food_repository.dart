@@ -4,10 +4,10 @@ import 'package:drift/drift.dart';
 
 import '../models/custom_food.dart';
 import '../models/food.dart';
-import '../models/premade_food.dart';
+import '../models/packaged_food.dart';
 import '../services/app_database.dart';
 
-/// Handles the pure food catalogue (premade and custom foods).
+/// Handles the pure food catalogue (packaged and custom foods).
 class FoodRepository {
   final AppDatabase _db;
   final StreamController<void> _changes = StreamController<void>.broadcast();
@@ -22,10 +22,12 @@ class FoodRepository {
 
   /// All pure foods in the catalogue, newest first.
   Future<List<Food>> getAllFoods() async {
-    final premadeRows = await (_db.select(_db.premadeFoods)..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
+    final packagedRows = await (_db.select(
+      _db.packagedFoods,
+    )..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
     final customRows = await (_db.select(_db.customFoods)..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
 
-    return <Food>[...premadeRows.map(PremadeFood.fromRow), ...customRows.map(CustomFood.fromRow)]
+    return <Food>[...packagedRows.map(PackagedFood.fromRow), ...customRows.map(CustomFood.fromRow)]
       ..sort((a, b) => b.lastUsedTime.compareTo(a.lastUsedTime));
   }
 
@@ -38,7 +40,7 @@ class FoodRepository {
   /// Inserts a new food or updates an existing one, returning its id.
   Future<int> saveFood(Food food) async {
     final id = switch (food) {
-      PremadeFood() => await _savePremadeFood(food),
+      PackagedFood() => await _savePackagedFood(food),
       CustomFood() => await _saveCustomFood(food),
       _ => throw ArgumentError('Unsupported food type: ${food.runtimeType}'),
     };
@@ -49,7 +51,7 @@ class FoodRepository {
   /// Deletes a food from the catalogue. Diet meals keep their snapshots.
   Future<bool> deleteFood(Food food) async {
     final count = switch (food) {
-      PremadeFood() => await (_db.delete(_db.premadeFoods)..where((t) => t.id.equals(food.id))).go(),
+      PackagedFood() => await (_db.delete(_db.packagedFoods)..where((t) => t.id.equals(food.id))).go(),
       CustomFood() => await (_db.delete(_db.customFoods)..where((t) => t.id.equals(food.id))).go(),
       _ => throw ArgumentError('Unsupported food type: ${food.runtimeType}'),
     };
@@ -59,8 +61,8 @@ class FoodRepository {
 
   Future<void> dispose() => _changes.close();
 
-  Future<int> _savePremadeFood(PremadeFood food) async {
-    final values = PremadeFoodsCompanion(
+  Future<int> _savePackagedFood(PackagedFood food) async {
+    final values = PackagedFoodsCompanion(
       name: Value(food.name),
       kj: Value(food.kj),
       carbs: Value(food.carbs),
@@ -73,11 +75,11 @@ class FoodRepository {
     );
 
     if (food.id > 0) {
-      await (_db.update(_db.premadeFoods)..where((t) => t.id.equals(food.id))).write(values);
+      await (_db.update(_db.packagedFoods)..where((t) => t.id.equals(food.id))).write(values);
       return food.id;
     }
 
-    final id = await _db.into(_db.premadeFoods).insert(values);
+    final id = await _db.into(_db.packagedFoods).insert(values);
     food.id = id;
     return id;
   }

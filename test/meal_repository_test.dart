@@ -4,7 +4,7 @@ import 'package:foody/extensions/meal_extensions.dart';
 import 'package:foody/models/custom_food.dart';
 import 'package:foody/models/food_source.dart';
 import 'package:foody/models/meal.dart';
-import 'package:foody/models/premade_food.dart';
+import 'package:foody/models/packaged_food.dart';
 import 'package:foody/repositories/food_repository.dart';
 import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/services/app_database.dart';
@@ -26,8 +26,8 @@ void main() {
       await database.close();
     });
 
-    test('saves and loads a PremadeFood meal snapshot', () async {
-      final food = PremadeFood(
+    test('saves and loads a PackagedFood meal snapshot', () async {
+      final food = PackagedFood(
         name: '牛奶',
         kj: 251,
         carbs: 10,
@@ -48,7 +48,7 @@ void main() {
       final loadedLog = loaded.first;
       expect(loadedLog.id, meal.id);
       expect(loadedLog.foodName, '牛奶');
-      expect(loadedLog.foodSource, FoodSource.premade);
+      expect(loadedLog.foodSource, FoodSource.packaged);
       expect(loadedLog.netContent, 200);
       expect(loadedLog.basisAmount, 100);
       expect(loadedLog.unitName, 'ml');
@@ -98,8 +98,8 @@ void main() {
     });
 
     test('updates a meal with a new food snapshot', () async {
-      final premade = PremadeFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8);
-      final meal = Meal.fromFood(food: premade, createTime: DateTime(2026, 10, 19, 8));
+      final packaged = PackagedFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8);
+      final meal = Meal.fromFood(food: packaged, createTime: DateTime(2026, 10, 19, 8));
       await repository.saveMeal(meal);
 
       final custom = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);

@@ -1,7 +1,7 @@
 import '../utils/energy_converter.dart';
 import 'food.dart';
 import 'food_source.dart';
-import 'premade_food.dart';
+import 'packaged_food.dart';
 
 /// A one-time meal record.
 ///
@@ -28,13 +28,13 @@ class Meal {
   /// Raw [FoodSource] value stored in the database.
   int rawFoodSource;
 
-  /// Net content metadata copied from a [PremadeFood]
+  /// Net content metadata copied from a [PackagedFood]
   double netContent;
 
-  /// Label basis metadata copied from a [PremadeFood]
+  /// Label basis metadata copied from a [PackagedFood]
   double basisAmount;
 
-  /// Unit metadata copied from a [PremadeFood]
+  /// Unit metadata copied from a [PackagedFood]
   String unitName;
 
   /// Number of servings eaten
@@ -68,7 +68,7 @@ class Meal {
     required DateTime createTime,
     String? note,
   }) {
-    final premade = food is PremadeFood ? food : null;
+    final packaged = food is PackagedFood ? food : null;
     return Meal(
       id: id,
       foodName: food.name,
@@ -76,11 +76,10 @@ class Meal {
       carbs: food.carbs,
       protein: food.protein,
       fat: food.fat,
-      rawFoodSource:
-          (premade != null ? FoodSource.premade : FoodSource.custom).value,
-      netContent: premade?.netContent ?? 1,
-      basisAmount: premade?.basisAmount ?? 1,
-      unitName: premade?.unitName ?? '份',
+      rawFoodSource: (packaged != null ? FoodSource.packaged : FoodSource.custom).value,
+      netContent: packaged?.netContent ?? 1,
+      basisAmount: packaged?.basisAmount ?? 1,
+      unitName: packaged?.unitName ?? '份',
       quantity: quantity,
       createTime: createTime,
       note: note,

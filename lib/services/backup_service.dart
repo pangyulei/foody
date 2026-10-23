@@ -10,7 +10,7 @@ import '../models/app_settings.dart';
 import '../models/custom_food.dart';
 import '../models/food_source.dart';
 import '../models/meal.dart';
-import '../models/premade_food.dart';
+import '../models/packaged_food.dart';
 import '../repositories/food_repository.dart';
 import '../repositories/meal_repository.dart';
 import 'app_database.dart';
@@ -25,11 +25,7 @@ class BackupService {
 
   bool _isBackingUp = false;
 
-  BackupService({
-    required this.database,
-    required this.foodRepository,
-    required this.mealRepository,
-  });
+  BackupService({required this.database, required this.foodRepository, required this.mealRepository});
 
   /// Creates a backup file in [folderPath].
   ///
@@ -58,10 +54,7 @@ class BackupService {
           ? 'foody_auto_backup_${DateFormat('yyyyMMdd_HHmmss_SSS').format(now)}.json'
           : 'foody_backup_${DateFormat('yyyyMMdd_HHmmss').format(now)}.json';
       final file = File(p.join(folderPath, fileName));
-      await file.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(data),
-        flush: true,
-      );
+      await file.writeAsString(const JsonEncoder.withIndent('  ').convert(data), flush: true);
       return file.path;
     } finally {
       _isBackingUp = false;
@@ -72,18 +65,11 @@ class BackupService {
   ///
   /// Concurrent calls are skipped rather than queued; the next change writes a
   /// fresh snapshot anyway.
-  Future<void> createAutomaticBackup({
-    required String folderPath,
-    required AppSettings settings,
-  }) async {
+  Future<void> createAutomaticBackup({required String folderPath, required AppSettings settings}) async {
     if (_isBackingUp) return;
 
     try {
-      await createBackup(
-        folderPath: folderPath,
-        settings: settings,
-        automatic: true,
-      );
+      await createBackup(folderPath: folderPath, settings: settings, automatic: true);
     } catch (_) {
       // Automatic backups must never interrupt the user's action.
     }
@@ -104,34 +90,36 @@ class BackupService {
       throw const FormatException('Invalid backup file');
     }
 
-    final version = (decoded['version'] as num?)?.toInt() ?? backupVersion;
-    if (version != backupVersion) {
+    final rawVersion = decoded['version'];
+    final version = rawVersion == null ? backupVersion : _int(rawVersion);
+    // Backups are forward-compatible only: accept older formats, reject files
+    // written by a newer app version that this code does not understand.
+    if (version > backupVersion) {
       throw FormatException('Unsupported backup version: $version');
     }
 
     final settingsJson = decoded['settings'];
-    final settings = settingsJson is Map<String, dynamic>
-        ? AppSettings.fromJson(settingsJson)
-        : const AppSettings();
+    final settings = settingsJson is Map<String, dynamic> ? AppSettings.fromJson(settingsJson) : const AppSettings();
 
-    final premadeFoods = _listOfMaps(decoded['premadeFoods'])
-        .map(_premadeFromJson)
-        .toList();
-    final customFoods = _listOfMaps(decoded['customFoods'])
-        .map(_customFromJson)
-        .toList();
-    final meals = _listOfMaps(decoded['meals']).map(_mealFromJson).toList();
+    // Backups written before schema v6 used `premadeFoods`; keep reading that
+    // key so old backups still restore.
+    final packagedFoodsJson = decoded['packagedFoods'] ?? decoded['premadeFoods'];
+    final packagedFoods = _listOfMaps(packagedFoodsJson).map(_packagedFromJson).toList();
+    final customFoods = _listOfMaps(decoded['customFoods']).map(_customFromJson).toList();
+    // v1/v2 called the meal list `dietLogs`.
+    final mealsJson = decoded['meals'] ?? decoded['dietLogs'];
+    final meals = _listOfMaps(mealsJson).map(_mealFromJson).toList();
 
     await database.transaction(() async {
       await database.delete(database.meals).go();
-      await database.delete(database.premadeFoods).go();
+      await database.delete(database.packagedFoods).go();
       await database.delete(database.customFoods).go();
 
-      for (final food in premadeFoods) {
+      for (final food in packagedFoods) {
         await database
-            .into(database.premadeFoods)
+            .into(database.packagedFoods)
             .insert(
-              PremadeFoodsCompanion(
+              PackagedFoodsCompanion(
                 id: _idValue(food.id),
                 name: Value(food.name),
                 kj: Value(food.kj),
@@ -198,16 +186,13 @@ class BackupService {
       'version': backupVersion,
       'createdAt': DateTime.now().toIso8601String(),
       'settings': settings.toJson(),
-      'premadeFoods': foods
-          .whereType<PremadeFood>()
-          .map(_premadeToJson)
-          .toList(),
+      'packagedFoods': foods.whereType<PackagedFood>().map(_packagedToJson).toList(),
       'customFoods': foods.whereType<CustomFood>().map(_customToJson).toList(),
       'meals': meals.map(_mealToJson).toList(),
     };
   }
 
-  Map<String, dynamic> _premadeToJson(PremadeFood food) => {
+  Map<String, dynamic> _packagedToJson(PackagedFood food) => {
     'id': food.id,
     'name': food.name,
     'kj': food.kj,
@@ -246,15 +231,15 @@ class BackupService {
     'note': meal.note,
   };
 
-  PremadeFood _premadeFromJson(Map<String, dynamic> json) {
-    return PremadeFood(
+  PackagedFood _packagedFromJson(Map<String, dynamic> json) {
+    return PackagedFood(
       id: _int(json['id']),
       name: json['name'] as String? ?? '',
       kj: _double(json['kj']),
       carbs: _double(json['carbs']),
       protein: _double(json['protein']),
       fat: _double(json['fat']),
-      netContent: _double(json['netContent'], 100),
+      netContent: _double(json['netContent'] ?? json['servingAmount'], 100),
       basisAmount: _double(json['basisAmount'], 100),
       unitName: json['unitName'] as String? ?? 'ml',
       lastUsedTime: _dateTime(json['lastUsedTime']),
@@ -281,9 +266,8 @@ class BackupService {
       carbs: _double(json['carbs']),
       protein: _double(json['protein']),
       fat: _double(json['fat']),
-      rawFoodSource:
-          (json['rawFoodSource'] as num?)?.toInt() ?? FoodSource.custom.value,
-      netContent: _double(json['netContent'], 1),
+      rawFoodSource: _foodSourceFromJson(json),
+      netContent: _double(json['netContent'] ?? json['servingAmount'], 1),
       basisAmount: _double(json['basisAmount'], 1),
       unitName: json['unitName'] as String? ?? '份',
       quantity: _double(json['quantity'], 1),
@@ -292,21 +276,44 @@ class BackupService {
     );
   }
 
+  /// Reads the persisted food source, tolerating older backups that stored a
+  /// text `inputMode` (`table`/`direct`) instead of the integer value.
+  int _foodSourceFromJson(Map<String, dynamic> json) {
+    final raw = json['rawFoodSource'];
+    if (raw is num) return raw.toInt();
+    if (raw is String) {
+      final parsed = int.tryParse(raw);
+      return parsed ?? _sourceValueFromText(raw);
+    }
+
+    final legacyMode = json['inputMode'];
+    if (legacyMode is num) return legacyMode.toInt();
+    if (legacyMode is String) return _sourceValueFromText(legacyMode);
+    return FoodSource.custom.value;
+  }
+
+  int _sourceValueFromText(String value) => value == 'table' || value == 'premade' || value == 'packaged'
+      ? FoodSource.packaged.value
+      : FoodSource.custom.value;
+
   List<Map<String, dynamic>> _listOfMaps(dynamic value) {
     if (value is! List) return const [];
-    return value
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
+    return value.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
   }
 
   Value<int> _idValue(int id) => id > 0 ? Value(id) : const Value.absent();
 
-  int _int(dynamic value) => (value as num?)?.toInt() ?? 0;
+  int _int(dynamic value) {
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
 
-  double _double(dynamic value, [double fallback = 0]) =>
-      (value as num?)?.toDouble() ?? fallback;
+  double _double(dynamic value, [double fallback = 0]) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? fallback;
+    return fallback;
+  }
 
-  DateTime _dateTime(dynamic value) =>
-      DateTime.tryParse(value as String? ?? '') ?? DateTime.now();
+  DateTime _dateTime(dynamic value) => DateTime.tryParse(value as String? ?? '') ?? DateTime.now();
 }

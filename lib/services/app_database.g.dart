@@ -3,12 +3,12 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
-class $PremadeFoodsTable extends PremadeFoods
-    with TableInfo<$PremadeFoodsTable, PremadeFoodRow> {
+class $PackagedFoodsTable extends PackagedFoods
+    with TableInfo<$PackagedFoodsTable, PackagedFoodRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $PremadeFoodsTable(this.attachedDatabase, [this._alias]);
+  $PackagedFoodsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -130,10 +130,10 @@ class $PremadeFoodsTable extends PremadeFoods
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'premade_foods';
+  static const String $name = 'packaged_foods';
   @override
   VerificationContext validateIntegrity(
-    Insertable<PremadeFoodRow> instance, {
+    Insertable<PackagedFoodRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -222,9 +222,9 @@ class $PremadeFoodsTable extends PremadeFoods
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  PremadeFoodRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  PackagedFoodRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return PremadeFoodRow(
+    return PackagedFoodRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -269,12 +269,12 @@ class $PremadeFoodsTable extends PremadeFoods
   }
 
   @override
-  $PremadeFoodsTable createAlias(String alias) {
-    return $PremadeFoodsTable(attachedDatabase, alias);
+  $PackagedFoodsTable createAlias(String alias) {
+    return $PackagedFoodsTable(attachedDatabase, alias);
   }
 }
 
-class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
+class PackagedFoodRow extends DataClass implements Insertable<PackagedFoodRow> {
   final int id;
   final String name;
   final double kj;
@@ -285,7 +285,7 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
   final double basisAmount;
   final String unitName;
   final DateTime lastUsedTime;
-  const PremadeFoodRow({
+  const PackagedFoodRow({
     required this.id,
     required this.name,
     required this.kj,
@@ -313,8 +313,8 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
     return map;
   }
 
-  PremadeFoodsCompanion toCompanion(bool nullToAbsent) {
-    return PremadeFoodsCompanion(
+  PackagedFoodsCompanion toCompanion(bool nullToAbsent) {
+    return PackagedFoodsCompanion(
       id: Value(id),
       name: Value(name),
       kj: Value(kj),
@@ -328,12 +328,12 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
     );
   }
 
-  factory PremadeFoodRow.fromJson(
+  factory PackagedFoodRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return PremadeFoodRow(
+    return PackagedFoodRow(
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       kj: serializer.fromJson<double>(json['kj']),
@@ -363,7 +363,7 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
     };
   }
 
-  PremadeFoodRow copyWith({
+  PackagedFoodRow copyWith({
     int? id,
     String? name,
     double? kj,
@@ -374,7 +374,7 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
     double? basisAmount,
     String? unitName,
     DateTime? lastUsedTime,
-  }) => PremadeFoodRow(
+  }) => PackagedFoodRow(
     id: id ?? this.id,
     name: name ?? this.name,
     kj: kj ?? this.kj,
@@ -386,8 +386,8 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
     unitName: unitName ?? this.unitName,
     lastUsedTime: lastUsedTime ?? this.lastUsedTime,
   );
-  PremadeFoodRow copyWithCompanion(PremadeFoodsCompanion data) {
-    return PremadeFoodRow(
+  PackagedFoodRow copyWithCompanion(PackagedFoodsCompanion data) {
+    return PackagedFoodRow(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       kj: data.kj.present ? data.kj.value : this.kj,
@@ -409,7 +409,7 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
 
   @override
   String toString() {
-    return (StringBuffer('PremadeFoodRow(')
+    return (StringBuffer('PackagedFoodRow(')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('kj: $kj, ')
@@ -440,7 +440,7 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is PremadeFoodRow &&
+      (other is PackagedFoodRow &&
           other.id == this.id &&
           other.name == this.name &&
           other.kj == this.kj &&
@@ -453,7 +453,7 @@ class PremadeFoodRow extends DataClass implements Insertable<PremadeFoodRow> {
           other.lastUsedTime == this.lastUsedTime);
 }
 
-class PremadeFoodsCompanion extends UpdateCompanion<PremadeFoodRow> {
+class PackagedFoodsCompanion extends UpdateCompanion<PackagedFoodRow> {
   final Value<int> id;
   final Value<String> name;
   final Value<double> kj;
@@ -464,7 +464,7 @@ class PremadeFoodsCompanion extends UpdateCompanion<PremadeFoodRow> {
   final Value<double> basisAmount;
   final Value<String> unitName;
   final Value<DateTime> lastUsedTime;
-  const PremadeFoodsCompanion({
+  const PackagedFoodsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.kj = const Value.absent(),
@@ -476,7 +476,7 @@ class PremadeFoodsCompanion extends UpdateCompanion<PremadeFoodRow> {
     this.unitName = const Value.absent(),
     this.lastUsedTime = const Value.absent(),
   });
-  PremadeFoodsCompanion.insert({
+  PackagedFoodsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     required double kj,
@@ -496,7 +496,7 @@ class PremadeFoodsCompanion extends UpdateCompanion<PremadeFoodRow> {
        basisAmount = Value(basisAmount),
        unitName = Value(unitName),
        lastUsedTime = Value(lastUsedTime);
-  static Insertable<PremadeFoodRow> custom({
+  static Insertable<PackagedFoodRow> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<double>? kj,
@@ -522,7 +522,7 @@ class PremadeFoodsCompanion extends UpdateCompanion<PremadeFoodRow> {
     });
   }
 
-  PremadeFoodsCompanion copyWith({
+  PackagedFoodsCompanion copyWith({
     Value<int>? id,
     Value<String>? name,
     Value<double>? kj,
@@ -534,7 +534,7 @@ class PremadeFoodsCompanion extends UpdateCompanion<PremadeFoodRow> {
     Value<String>? unitName,
     Value<DateTime>? lastUsedTime,
   }) {
-    return PremadeFoodsCompanion(
+    return PackagedFoodsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       kj: kj ?? this.kj,
@@ -586,7 +586,7 @@ class PremadeFoodsCompanion extends UpdateCompanion<PremadeFoodRow> {
 
   @override
   String toString() {
-    return (StringBuffer('PremadeFoodsCompanion(')
+    return (StringBuffer('PackagedFoodsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('kj: $kj, ')
@@ -1789,12 +1789,12 @@ class MealsCompanion extends UpdateCompanion<MealRow> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
-  late final $PremadeFoodsTable premadeFoods = $PremadeFoodsTable(this);
+  late final $PackagedFoodsTable packagedFoods = $PackagedFoodsTable(this);
   late final $CustomFoodsTable customFoods = $CustomFoodsTable(this);
   late final $MealsTable meals = $MealsTable(this);
-  late final Index idxPremadeFoodsLastUsed = Index(
-    'idx_premade_foods_last_used',
-    'CREATE INDEX idx_premade_foods_last_used ON premade_foods (last_used_time)',
+  late final Index idxPackagedFoodsLastUsed = Index(
+    'idx_packaged_foods_last_used',
+    'CREATE INDEX idx_packaged_foods_last_used ON packaged_foods (last_used_time)',
   );
   late final Index idxCustomFoodsLastUsed = Index(
     'idx_custom_foods_last_used',
@@ -1809,17 +1809,17 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
-    premadeFoods,
+    packagedFoods,
     customFoods,
     meals,
-    idxPremadeFoodsLastUsed,
+    idxPackagedFoodsLastUsed,
     idxCustomFoodsLastUsed,
     idxMealsCreateTime,
   ];
 }
 
-typedef $$PremadeFoodsTableCreateCompanionBuilder =
-    PremadeFoodsCompanion Function({
+typedef $$PackagedFoodsTableCreateCompanionBuilder =
+    PackagedFoodsCompanion Function({
       Value<int> id,
       required String name,
       required double kj,
@@ -1831,8 +1831,8 @@ typedef $$PremadeFoodsTableCreateCompanionBuilder =
       required String unitName,
       required DateTime lastUsedTime,
     });
-typedef $$PremadeFoodsTableUpdateCompanionBuilder =
-    PremadeFoodsCompanion Function({
+typedef $$PackagedFoodsTableUpdateCompanionBuilder =
+    PackagedFoodsCompanion Function({
       Value<int> id,
       Value<String> name,
       Value<double> kj,
@@ -1845,9 +1845,9 @@ typedef $$PremadeFoodsTableUpdateCompanionBuilder =
       Value<DateTime> lastUsedTime,
     });
 
-class $$PremadeFoodsTableFilterComposer
-    extends Composer<_$AppDatabase, $PremadeFoodsTable> {
-  $$PremadeFoodsTableFilterComposer({
+class $$PackagedFoodsTableFilterComposer
+    extends Composer<_$AppDatabase, $PackagedFoodsTable> {
+  $$PackagedFoodsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -1905,9 +1905,9 @@ class $$PremadeFoodsTableFilterComposer
   );
 }
 
-class $$PremadeFoodsTableOrderingComposer
-    extends Composer<_$AppDatabase, $PremadeFoodsTable> {
-  $$PremadeFoodsTableOrderingComposer({
+class $$PackagedFoodsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PackagedFoodsTable> {
+  $$PackagedFoodsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -1965,9 +1965,9 @@ class $$PremadeFoodsTableOrderingComposer
   );
 }
 
-class $$PremadeFoodsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $PremadeFoodsTable> {
-  $$PremadeFoodsTableAnnotationComposer({
+class $$PackagedFoodsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PackagedFoodsTable> {
+  $$PackagedFoodsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2011,35 +2011,35 @@ class $$PremadeFoodsTableAnnotationComposer
   );
 }
 
-class $$PremadeFoodsTableTableManager
+class $$PackagedFoodsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $PremadeFoodsTable,
-          PremadeFoodRow,
-          $$PremadeFoodsTableFilterComposer,
-          $$PremadeFoodsTableOrderingComposer,
-          $$PremadeFoodsTableAnnotationComposer,
-          $$PremadeFoodsTableCreateCompanionBuilder,
-          $$PremadeFoodsTableUpdateCompanionBuilder,
+          $PackagedFoodsTable,
+          PackagedFoodRow,
+          $$PackagedFoodsTableFilterComposer,
+          $$PackagedFoodsTableOrderingComposer,
+          $$PackagedFoodsTableAnnotationComposer,
+          $$PackagedFoodsTableCreateCompanionBuilder,
+          $$PackagedFoodsTableUpdateCompanionBuilder,
           (
-            PremadeFoodRow,
-            BaseReferences<_$AppDatabase, $PremadeFoodsTable, PremadeFoodRow>,
+            PackagedFoodRow,
+            BaseReferences<_$AppDatabase, $PackagedFoodsTable, PackagedFoodRow>,
           ),
-          PremadeFoodRow,
+          PackagedFoodRow,
           PrefetchHooks Function()
         > {
-  $$PremadeFoodsTableTableManager(_$AppDatabase db, $PremadeFoodsTable table)
+  $$PackagedFoodsTableTableManager(_$AppDatabase db, $PackagedFoodsTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$PremadeFoodsTableFilterComposer($db: db, $table: table),
+              $$PackagedFoodsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$PremadeFoodsTableOrderingComposer($db: db, $table: table),
+              $$PackagedFoodsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$PremadeFoodsTableAnnotationComposer($db: db, $table: table),
+              $$PackagedFoodsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -2052,7 +2052,7 @@ class $$PremadeFoodsTableTableManager
                 Value<double> basisAmount = const Value.absent(),
                 Value<String> unitName = const Value.absent(),
                 Value<DateTime> lastUsedTime = const Value.absent(),
-              }) => PremadeFoodsCompanion(
+              }) => PackagedFoodsCompanion(
                 id: id,
                 name: name,
                 kj: kj,
@@ -2076,7 +2076,7 @@ class $$PremadeFoodsTableTableManager
                 required double basisAmount,
                 required String unitName,
                 required DateTime lastUsedTime,
-              }) => PremadeFoodsCompanion.insert(
+              }) => PackagedFoodsCompanion.insert(
                 id: id,
                 name: name,
                 kj: kj,
@@ -2091,11 +2091,11 @@ class $$PremadeFoodsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable<$PremadeFoodsTable, PremadeFoodRow>(table),
+                  e.readTable<$PackagedFoodsTable, PackagedFoodRow>(table),
                   BaseReferences<
                     _$AppDatabase,
-                    $PremadeFoodsTable,
-                    PremadeFoodRow
+                    $PackagedFoodsTable,
+                    PackagedFoodRow
                   >(db, table, e),
                 ),
               )
@@ -2105,21 +2105,21 @@ class $$PremadeFoodsTableTableManager
       );
 }
 
-typedef $$PremadeFoodsTableProcessedTableManager =
+typedef $$PackagedFoodsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $PremadeFoodsTable,
-      PremadeFoodRow,
-      $$PremadeFoodsTableFilterComposer,
-      $$PremadeFoodsTableOrderingComposer,
-      $$PremadeFoodsTableAnnotationComposer,
-      $$PremadeFoodsTableCreateCompanionBuilder,
-      $$PremadeFoodsTableUpdateCompanionBuilder,
+      $PackagedFoodsTable,
+      PackagedFoodRow,
+      $$PackagedFoodsTableFilterComposer,
+      $$PackagedFoodsTableOrderingComposer,
+      $$PackagedFoodsTableAnnotationComposer,
+      $$PackagedFoodsTableCreateCompanionBuilder,
+      $$PackagedFoodsTableUpdateCompanionBuilder,
       (
-        PremadeFoodRow,
-        BaseReferences<_$AppDatabase, $PremadeFoodsTable, PremadeFoodRow>,
+        PackagedFoodRow,
+        BaseReferences<_$AppDatabase, $PackagedFoodsTable, PackagedFoodRow>,
       ),
-      PremadeFoodRow,
+      PackagedFoodRow,
       PrefetchHooks Function()
     >;
 typedef $$CustomFoodsTableCreateCompanionBuilder =
@@ -2723,8 +2723,8 @@ typedef $$MealsTableProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
-  $$PremadeFoodsTableTableManager get premadeFoods =>
-      $$PremadeFoodsTableTableManager(_db, _db.premadeFoods);
+  $$PackagedFoodsTableTableManager get packagedFoods =>
+      $$PackagedFoodsTableTableManager(_db, _db.packagedFoods);
   $$CustomFoodsTableTableManager get customFoods =>
       $$CustomFoodsTableTableManager(_db, _db.customFoods);
   $$MealsTableTableManager get meals =>

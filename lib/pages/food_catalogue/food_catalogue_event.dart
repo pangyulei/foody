@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../models/food.dart';
-import '../../models/premade_food.dart';
+import '../../models/packaged_food.dart';
 
 abstract class FoodCatalogueEvent extends Equatable {
   const FoodCatalogueEvent();
@@ -27,5 +27,5 @@ class DeleteFoodCatalogueEntry extends FoodCatalogueEvent {
   const DeleteFoodCatalogueEntry(this.food);
 
   @override
-  List<Object?> get props => [food.id, food is PremadeFood];
+  List<Object?> get props => [food.id, food is PackagedFood];
 }

@@ -50,8 +50,6 @@ class AppStrings {
   String get logButton => _en ? 'Log' : '记录';
 
   // 记录明细
-  String get modeTable => _en ? 'Label' : '成分表';
-  String get modeDirect => _en ? 'Direct' : '直接输入';
   String get notePrefix => _en ? 'Note: ' : '备注: ';
   String macrosLine(double carbs, double protein, double fat) => _en
       ? 'Carbs: ${carbs.toStringAsFixed(1)}g · Protein: ${protein.toStringAsFixed(1)}g · Fat: ${fat.toStringAsFixed(1)}g'
@@ -166,7 +164,7 @@ class AppStrings {
   String get editCatalogueFoodTitle => _en ? 'Edit Food' : '编辑食物';
   String get noCatalogueFoods => _en ? 'No saved foods yet' : '还没有保存的食物';
   String foodCatalogueCount(int count) => _en ? '$count saved ${count == 1 ? 'food' : 'foods'}' : '共 $count 种食物';
-  String get foodTypePremade => _en ? 'Premade' : '包装食品';
+  String get foodTypePackaged => _en ? 'Packaged' : '包装食品';
   String get foodTypeCustom => _en ? 'Custom' : '自定义';
   String get confirmDeleteFood => _en ? 'Delete food?' : '删除食物？';
   String deleteFoodMessage(String name) =>

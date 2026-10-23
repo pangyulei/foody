@@ -2,7 +2,7 @@ import '../services/app_database.dart';
 import 'food.dart';
 
 /// 包装食品：带有营养成分表、按“基准份量”标注营养数值的食物。
-class PremadeFood implements Food {
+class PackagedFood implements Food {
   @override
   int id;
 
@@ -37,7 +37,7 @@ class PremadeFood implements Food {
   @override
   DateTime lastUsedTime;
 
-  PremadeFood({
+  PackagedFood({
     this.id = 0,
     required this.name,
     required this.kj,
@@ -50,8 +50,8 @@ class PremadeFood implements Food {
     DateTime? lastUsedTime,
   }) : lastUsedTime = lastUsedTime ?? DateTime.now();
 
-  factory PremadeFood.fromRow(PremadeFoodRow row) {
-    return PremadeFood(
+  factory PackagedFood.fromRow(PackagedFoodRow row) {
+    return PackagedFood(
       id: row.id,
       name: row.name,
       kj: row.kj,

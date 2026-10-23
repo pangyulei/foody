@@ -3,7 +3,7 @@ import '../utils/energy_converter.dart';
 /// 纯食物的公共接口。
 ///
 /// 具体分为：
-/// - [PremadeFood]：包装食品，按营养成分表记录
+/// - [PackagedFood]：包装食品，按营养成分表记录
 /// - [CustomFood]：用户自定义食品，例如一盘菜、一个鸡蛋
 abstract interface class Food {
   int get id;

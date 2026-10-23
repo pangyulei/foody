@@ -5,7 +5,7 @@ import 'package:foody/models/custom_food.dart';
 import 'package:foody/models/food.dart';
 import 'package:foody/models/food_source.dart';
 import 'package:foody/models/meal.dart';
-import 'package:foody/models/premade_food.dart';
+import 'package:foody/models/packaged_food.dart';
 import 'package:foody/utils/energy_converter.dart';
 
 void main() {
@@ -57,12 +57,7 @@ void main() {
 
   group('AppSettings goals', () {
     test('targets are body weight multiplied by factor', () {
-      const settings = AppSettings(
-        weightKg: 70,
-        carbsFactor: 3,
-        proteinFactor: 1.5,
-        fatFactor: 1,
-      );
+      const settings = AppSettings(weightKg: 70, carbsFactor: 3, proteinFactor: 1.5, fatFactor: 1);
 
       expect(settings.hasGoals, isTrue);
       expect(settings.targetCarbs, 210);
@@ -79,18 +74,9 @@ void main() {
     test('goals require weight and all macro factors', () {
       expect(const AppSettings(weightKg: 70).hasCompleteGoalData, isTrue);
       expect(const AppSettings(weightKg: 0).hasCompleteGoalData, isFalse);
-      expect(
-        const AppSettings(weightKg: 70, carbsFactor: 0).hasCompleteGoalData,
-        isFalse,
-      );
-      expect(
-        const AppSettings(weightKg: 70, proteinFactor: 0).hasCompleteGoalData,
-        isFalse,
-      );
-      expect(
-        const AppSettings(weightKg: 70, fatFactor: 0).hasCompleteGoalData,
-        isFalse,
-      );
+      expect(const AppSettings(weightKg: 70, carbsFactor: 0).hasCompleteGoalData, isFalse);
+      expect(const AppSettings(weightKg: 70, proteinFactor: 0).hasCompleteGoalData, isFalse);
+      expect(const AppSettings(weightKg: 70, fatFactor: 0).hasCompleteGoalData, isFalse);
     });
 
     test('old settings JSON with goalsEnabled still loads other values', () {
@@ -120,18 +106,8 @@ void main() {
 
   group('Meal statistics', () {
     test('Meal multiplies food nutrition by quantity', () {
-      final food = CustomFood(
-        name: 'A',
-        kj: 100,
-        carbs: 10,
-        protein: 5,
-        fat: 2,
-      );
-      final meal = Meal.fromFood(
-        food: food,
-        quantity: 2,
-        createTime: DateTime.now(),
-      );
+      final food = CustomFood(name: 'A', kj: 100, carbs: 10, protein: 5, fat: 2);
+      final meal = Meal.fromFood(food: food, quantity: 2, createTime: DateTime.now());
 
       expect(meal.foodName, 'A');
       expect(meal.kj, 100);
@@ -142,7 +118,7 @@ void main() {
     });
 
     test('Meal.fromFood copies the food snapshot', () {
-      final premade = PremadeFood(
+      final packaged = PackagedFood(
         name: '牛奶',
         kj: 502.08,
         carbs: 10,
@@ -152,23 +128,14 @@ void main() {
         basisAmount: 100,
         unitName: 'ml',
       );
-      final custom = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
+      final custom = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
 
-      final premadeLog = Meal.fromFood(
-        food: premade,
-        createTime: DateTime.now(),
-      );
-      expect(premadeLog.foodName, '牛奶');
-      expect(premadeLog.foodSource, FoodSource.premade);
-      expect(premadeLog.netContent, 200);
-      expect(premadeLog.basisAmount, 100);
-      expect(premadeLog.unitName, 'ml');
+      final packagedLog = Meal.fromFood(food: packaged, createTime: DateTime.now());
+      expect(packagedLog.foodName, '牛奶');
+      expect(packagedLog.foodSource, FoodSource.packaged);
+      expect(packagedLog.netContent, 200);
+      expect(packagedLog.basisAmount, 100);
+      expect(packagedLog.unitName, 'ml');
 
       final customLog = Meal.fromFood(food: custom, createTime: DateTime.now());
       expect(customLog.foodName, '鸡蛋');
@@ -179,20 +146,8 @@ void main() {
     });
 
     test('List<Meal> extension sums meals', () {
-      final foodA = CustomFood(
-        name: 'A',
-        kj: 100,
-        carbs: 10,
-        protein: 5,
-        fat: 2,
-      );
-      final foodB = PremadeFood(
-        name: 'B',
-        kj: 200,
-        carbs: 20,
-        protein: 10,
-        fat: 4,
-      );
+      final foodA = CustomFood(name: 'A', kj: 100, carbs: 10, protein: 5, fat: 2);
+      final foodB = PackagedFood(name: 'B', kj: 200, carbs: 20, protein: 10, fat: 4);
       final meals = [
         Meal.fromFood(food: foodA, quantity: 1, createTime: DateTime.now()),
         Meal.fromFood(food: foodB, quantity: 2, createTime: DateTime.now()),
