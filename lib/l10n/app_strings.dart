@@ -180,6 +180,10 @@ class AppStrings {
   String get backupFolder => _en ? 'Backup folder' : '备份文件夹';
   String get backupFolderNotSet => _en ? 'No folder selected' : '未选择文件夹';
   String get chooseBackupFolder => _en ? 'Choose backup folder' : '选择备份文件夹';
+  String get autoBackupRetention => _en ? 'Auto backups to keep' : '自动备份保留数量';
+  String autoBackupRetentionSubtitle(int count) =>
+      _en ? 'Keep the latest $count automatic ${count == 1 ? 'backup' : 'backups'}' : '仅保留最近 $count 份自动备份';
+  String get autoBackupRetentionRequiresFolder => _en ? 'Set a backup folder first' : '请先设置备份文件夹';
   String get backupNow => _en ? 'Backup now' : '立即备份';
   String get backupNowSubtitle => _en ? 'Save a backup to the backup folder' : '将数据备份到备份文件夹';
   String get restoreBackup => _en ? 'Restore backup' : '恢复备份';

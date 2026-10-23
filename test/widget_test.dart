@@ -102,6 +102,34 @@ void main() {
       final restored = AppSettings.fromJson(settings.toJson());
       expect(restored.backupFolder, r'C:\backups');
     });
+
+    test('old settings JSON defaults the auto-backup limit to 3', () {
+      final settings = AppSettings.fromJson({'languageCode': 'en', 'weightKg': 70});
+
+      expect(settings.autoBackupLimit, 3);
+      expect(settings.languageCode, 'en');
+      expect(settings.weightKg, 70);
+    });
+
+    test('auto-backup limit round-trips and is clamped to 1-10', () {
+      const settings = AppSettings(autoBackupLimit: 7);
+      expect(AppSettings.fromJson(settings.toJson()).autoBackupLimit, 7);
+      expect(AppSettings.fromJson({'autoBackupLimit': 0}).autoBackupLimit, 1);
+      expect(AppSettings.fromJson({'autoBackupLimit': 11}).autoBackupLimit, 10);
+      expect(AppSettings.fromJson({'autoBackupLimit': '5'}).autoBackupLimit, 5);
+      expect(AppSettings.fromJson({'autoBackupLimit': 'nope'}).autoBackupLimit, 3);
+    });
+
+    test('settings JSON gains a version while keeping old values', () {
+      final settings = AppSettings.fromJson({'languageCode': 'en', 'themeColorValue': 0xFF2196F3, 'weightKg': 70});
+      final json = settings.toJson();
+
+      expect(json['version'], AppSettings.currentVersion);
+      expect(json['languageCode'], 'en');
+      expect(json['themeColorValue'], 0xFF2196F3);
+      expect(json['weightKg'], 70);
+      expect(json['autoBackupLimit'], 3);
+    });
   });
 
   group('Meal statistics', () {

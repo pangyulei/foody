@@ -42,10 +42,7 @@ class _FakeFilePicker extends FilePickerPlatform {
 
 void main() {
   testWidgets('settings backup entry opens the backup page', (tester) async {
-    final bloc = SettingsBloc(
-      service: _FakeSettingsService(),
-      initial: const AppSettings(),
-    );
+    final bloc = SettingsBloc(service: _FakeSettingsService(), initial: const AppSettings());
 
     addTearDown(bloc.close);
 
@@ -78,10 +75,7 @@ void main() {
     FilePickerPlatform.instance = picker;
     addTearDown(() => FilePickerPlatform.instance = originalPicker);
 
-    final bloc = SettingsBloc(
-      service: _FakeSettingsService(),
-      initial: const AppSettings(),
-    );
+    final bloc = SettingsBloc(service: _FakeSettingsService(), initial: const AppSettings());
 
     addTearDown(bloc.close);
 
@@ -101,5 +95,45 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
     expect(find.byType(BackupPage), findsOneWidget);
+  });
+
+  testWidgets('auto backup retention is disabled without a backup folder', (tester) async {
+    final bloc = SettingsBloc(service: _FakeSettingsService(), initial: const AppSettings());
+
+    addTearDown(bloc.close);
+
+    await tester.pumpWidget(
+      BlocProvider.value(
+        value: bloc,
+        child: const MaterialApp(home: BackupPage()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Set a backup folder first'), findsOneWidget);
+    final dropdown = tester.widget<DropdownButton<int>>(find.byType(DropdownButton<int>));
+    expect(dropdown.onChanged, isNull);
+  });
+
+  testWidgets('auto backup retention is enabled with a backup folder', (tester) async {
+    final bloc = SettingsBloc(
+      service: _FakeSettingsService(),
+      initial: const AppSettings(backupFolder: 'backups'),
+    );
+
+    addTearDown(bloc.close);
+
+    await tester.pumpWidget(
+      BlocProvider.value(
+        value: bloc,
+        child: const MaterialApp(home: BackupPage()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Keep the latest 3 automatic backups'), findsOneWidget);
+    final dropdown = tester.widget<DropdownButton<int>>(find.byType(DropdownButton<int>));
+    expect(dropdown.onChanged, isNotNull);
+    expect(dropdown.value, 3);
   });
 }

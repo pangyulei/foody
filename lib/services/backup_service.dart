@@ -19,6 +19,10 @@ import 'app_database.dart';
 class BackupService {
   static const int backupVersion = 1;
 
+  /// Matches automatic backup names, including the older format without a
+  /// millisecond suffix.
+  static final RegExp _automaticBackupName = RegExp(r'^foody_auto_backup_\d{8}_\d{6}(_\d{3})?\.json$');
+
   final AppDatabase database;
   final FoodRepository foodRepository;
   final MealRepository mealRepository;
@@ -55,6 +59,15 @@ class BackupService {
           : 'foody_backup_${DateFormat('yyyyMMdd_HHmmss').format(now)}.json';
       final file = File(p.join(folderPath, fileName));
       await file.writeAsString(const JsonEncoder.withIndent('  ').convert(data), flush: true);
+
+      if (automatic) {
+        try {
+          await pruneAutomaticBackups(folderPath: folderPath, keep: settings.autoBackupLimit);
+        } catch (_) {
+          // Retention cleanup must not fail the backup that was just written.
+        }
+      }
+
       return file.path;
     } finally {
       _isBackingUp = false;
@@ -72,6 +85,34 @@ class BackupService {
       await createBackup(folderPath: folderPath, settings: settings, automatic: true);
     } catch (_) {
       // Automatic backups must never interrupt the user's action.
+    }
+  }
+
+  /// Deletes older automatic backups so only the latest [keep] remain.
+  ///
+  /// Manual backups are never touched. Automatic backups are recognised by
+  /// their file-name prefix, including files written by older releases.
+  Future<void> pruneAutomaticBackups({required String folderPath, required int keep}) async {
+    final directory = Directory(folderPath);
+    if (!await directory.exists()) return;
+
+    final limit = AppSettings.clampAutoBackupLimit(keep);
+    final files = <File>[];
+    await for (final entity in directory.list()) {
+      if (entity is File && _automaticBackupName.hasMatch(p.basename(entity.path))) {
+        files.add(entity);
+      }
+    }
+
+    // Timestamps in the file names sort chronologically as plain strings.
+    files.sort((a, b) => p.basename(b.path).compareTo(p.basename(a.path)));
+
+    for (final file in files.skip(limit)) {
+      try {
+        await file.delete();
+      } catch (_) {
+        // Best effort: a locked file is retried on the next automatic backup.
+      }
     }
   }
 

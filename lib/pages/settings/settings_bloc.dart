@@ -9,59 +9,36 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final SettingsService service;
   Future<void> _saveQueue = Future<void>.value();
 
-  SettingsBloc({required this.service, required AppSettings initial})
-    : super(SettingsState(initial)) {
+  SettingsBloc({required this.service, required AppSettings initial}) : super(SettingsState(initial)) {
     on<SettingsLanguageChanged>(
-      (event, emit) => _update(
-        emit,
-        state.settings.copyWith(languageCode: event.languageCode),
-      ),
+      (event, emit) => _update(emit, state.settings.copyWith(languageCode: event.languageCode)),
     );
     on<SettingsThemeColorChanged>(
-      (event, emit) => _update(
-        emit,
-        state.settings.copyWith(themeColorValue: event.colorValue),
-      ),
+      (event, emit) => _update(emit, state.settings.copyWith(themeColorValue: event.colorValue)),
     );
     on<SettingsGoalsCleared>(
-      (event, emit) => _update(
-        emit,
-        state.settings.copyWith(
-          weightKg: 0,
-          carbsFactor: 0,
-          proteinFactor: 0,
-          fatFactor: 0,
-        ),
-      ),
+      (event, emit) =>
+          _update(emit, state.settings.copyWith(weightKg: 0, carbsFactor: 0, proteinFactor: 0, fatFactor: 0)),
     );
     on<SettingsBackupFolderChanged>(
+      (event, emit) => _update(emit, state.settings.copyWith(backupFolder: event.folder)),
+    );
+    on<SettingsAutoBackupLimitChanged>(
       (event, emit) =>
-          _update(emit, state.settings.copyWith(backupFolder: event.folder)),
+          _update(emit, state.settings.copyWith(autoBackupLimit: AppSettings.clampAutoBackupLimit(event.limit))),
     );
     on<SettingsRestored>((event, emit) => _update(emit, event.settings));
-    on<SettingsWeightChanged>(
-      (event, emit) =>
-          _update(emit, state.settings.copyWith(weightKg: event.weightKg)),
-    );
-    on<SettingsCarbsFactorChanged>(
-      (event, emit) =>
-          _update(emit, state.settings.copyWith(carbsFactor: event.value)),
-    );
+    on<SettingsWeightChanged>((event, emit) => _update(emit, state.settings.copyWith(weightKg: event.weightKg)));
+    on<SettingsCarbsFactorChanged>((event, emit) => _update(emit, state.settings.copyWith(carbsFactor: event.value)));
     on<SettingsProteinFactorChanged>(
-      (event, emit) =>
-          _update(emit, state.settings.copyWith(proteinFactor: event.value)),
+      (event, emit) => _update(emit, state.settings.copyWith(proteinFactor: event.value)),
     );
-    on<SettingsFatFactorChanged>(
-      (event, emit) =>
-          _update(emit, state.settings.copyWith(fatFactor: event.value)),
-    );
+    on<SettingsFatFactorChanged>((event, emit) => _update(emit, state.settings.copyWith(fatFactor: event.value)));
   }
 
   /// 按顺序写入，避免快速输入时旧的设置覆盖新的设置。
   void _update(Emitter<SettingsState> emit, AppSettings next) {
     emit(SettingsState(next));
-    _saveQueue = _saveQueue
-        .then((_) => service.save(next))
-        .catchError((Object _) {});
+    _saveQueue = _saveQueue.then((_) => service.save(next)).catchError((Object _) {});
   }
 }

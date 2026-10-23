@@ -201,6 +201,11 @@ Settings live in `foody_settings.json` and are loaded by `SettingsService`.
 - If a key is renamed, read the old key when the new one is absent.
 - Do not discard settings that the current code does not understand any more than necessary.
 
+Current settings JSON is written with `version: 1`. `autoBackupLimit` stores how
+many of the latest automatic backups are kept (1-10, default 3). It is only
+enforced when `backupFolder` is set. Files written before this key existed must
+load with the default of 3 without losing any other value.
+
 ## Current data invariants
 
 - A `Meal` stores a snapshot of the food's name, per-serving nutrition, net content metadata, and `raw_food_source`. It has no relation to `Food`.
@@ -213,6 +218,7 @@ Settings live in `foody_settings.json` and are loaded by `SettingsService`.
 - Deleting a meal keeps the pure food.
 - Daily goal progress is shown whenever body weight and all three macro factors are present; there is no separate enable switch.
 - History statistics do not apply current goals; goals are only for Today's progress rings.
+- Automatic backup retention only deletes files named `foody_auto_backup_*.json`; manual `foody_backup_*.json` files are never pruned.
 
 ## Forbidden without explicit user approval
 

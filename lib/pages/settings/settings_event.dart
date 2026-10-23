@@ -41,6 +41,16 @@ class SettingsBackupFolderChanged extends SettingsEvent {
   List<Object?> get props => [folder];
 }
 
+/// Changes how many of the latest automatic backups are kept.
+class SettingsAutoBackupLimitChanged extends SettingsEvent {
+  final int limit;
+
+  const SettingsAutoBackupLimitChanged(this.limit);
+
+  @override
+  List<Object?> get props => [limit];
+}
+
 class SettingsRestored extends SettingsEvent {
   final AppSettings settings;
 

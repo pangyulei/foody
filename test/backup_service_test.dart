@@ -280,4 +280,75 @@ void main() {
       reason: 'automatic backups must not overwrite each other',
     );
   });
+
+  test('retention keeps only the newest automatic backups', () async {
+    final tempDir = await Directory.systemTemp.createTemp('foody_retention');
+    final database = AppDatabase(NativeDatabase.memory());
+    final foods = FoodRepository(database);
+    final meals = MealRepository(database);
+    final service = BackupService(database: database, foodRepository: foods, mealRepository: meals);
+
+    addTearDown(() async {
+      await meals.dispose();
+      await foods.dispose();
+      await database.close();
+      await tempDir.delete(recursive: true);
+    });
+
+    for (final name in const [
+      'foody_auto_backup_20260101_000001.json',
+      'foody_auto_backup_20260101_000002.json',
+      'foody_auto_backup_20260101_000003_123.json',
+      'foody_auto_backup_20260101_000004.json',
+    ]) {
+      await File(p.join(tempDir.path, name)).writeAsString('{}');
+    }
+    await File(p.join(tempDir.path, 'foody_backup_20260101_000005.json')).writeAsString('{}');
+
+    await service.pruneAutomaticBackups(folderPath: tempDir.path, keep: 2);
+
+    final remaining = tempDir.listSync().whereType<File>().map((file) => p.basename(file.path)).toList();
+    expect(remaining, hasLength(3));
+    expect(remaining, contains('foody_auto_backup_20260101_000004.json'));
+    expect(remaining, contains('foody_auto_backup_20260101_000003_123.json'));
+    expect(remaining, contains('foody_backup_20260101_000005.json'));
+  });
+
+  test('automatic backups apply retention but manual backups do not', () async {
+    final tempDir = await Directory.systemTemp.createTemp('foody_retention_run');
+    final database = AppDatabase(NativeDatabase.memory());
+    final foods = FoodRepository(database);
+    final meals = MealRepository(database);
+    final service = BackupService(database: database, foodRepository: foods, mealRepository: meals);
+
+    addTearDown(() async {
+      await meals.dispose();
+      await foods.dispose();
+      await database.close();
+      await tempDir.delete(recursive: true);
+    });
+
+    for (var i = 1; i <= 4; i++) {
+      await File(p.join(tempDir.path, 'foody_auto_backup_20000101_00000$i.json')).writeAsString('{}');
+    }
+
+    const settings = AppSettings(autoBackupLimit: 2);
+
+    // Manual backups never prune automatic ones.
+    await service.createBackup(folderPath: tempDir.path, settings: settings);
+    expect(_automaticBackupNames(tempDir), hasLength(4));
+
+    await service.createBackup(folderPath: tempDir.path, settings: settings, automatic: true);
+
+    final remaining = _automaticBackupNames(tempDir);
+    expect(remaining, hasLength(2));
+    expect(remaining, contains('foody_auto_backup_20000101_000004.json'));
+  });
 }
+
+List<String> _automaticBackupNames(Directory directory) => directory
+    .listSync()
+    .whereType<File>()
+    .map((file) => p.basename(file.path))
+    .where((name) => name.startsWith('foody_auto_backup_'))
+    .toList();
