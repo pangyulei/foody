@@ -6,6 +6,7 @@ import '../../l10n/app_strings.dart';
 import '../../repositories/meal_repository.dart';
 import '../../widgets/day_log_content.dart';
 import '../../widgets/error_view.dart';
+import '../../widgets/quick_add_sheet.dart';
 import '../add_food/add_food_page.dart';
 import 'history_detail_bloc.dart';
 import 'history_detail_event.dart';
@@ -19,10 +20,8 @@ class HistoryDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => HistoryDetailBloc(
-        repository: context.read<MealRepository>(),
-        date: date,
-      )..add(const LoadHistoryDetail()),
+      create: (context) =>
+          HistoryDetailBloc(repository: context.read<MealRepository>(), date: date)..add(const LoadHistoryDetail()),
       child: const _HistoryDetailView(),
     );
   }
@@ -37,14 +36,9 @@ class _HistoryDetailView extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return Dialog(
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: SizedBox(
             width: 340,
             height: 440,
@@ -66,9 +60,7 @@ class _HistoryDetailView extends StatelessWidget {
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
+    return date.year == now.year && date.month == now.month && date.day == now.day;
   }
 
   @override
@@ -91,13 +83,10 @@ class _HistoryDetailView extends StatelessWidget {
         } else if (state is HistoryDetailLoaded) {
           body = DayLogContentView(
             meals: state.meals,
-            date: state.date,
             summaryTitle: t.intakeThatDay,
             emptyMessage: t.emptyHistory,
             onDeleteLog: (id) {
-              context.read<HistoryDetailBloc>().add(
-                DeleteHistoryDetailMeal(id),
-              );
+              context.read<HistoryDetailBloc>().add(DeleteHistoryDetailMeal(id));
             },
           );
         } else {
@@ -115,9 +104,7 @@ class _HistoryDetailView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _isToday(state.date)
-                          ? t.todayWithDate(dateText)
-                          : dateText,
+                      _isToday(state.date) ? t.todayWithDate(dateText) : dateText,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(width: 4),
@@ -127,24 +114,28 @@ class _HistoryDetailView extends StatelessWidget {
               ),
             ),
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () {
-              final now = DateTime.now();
-              final initialDate = DateTime(
-                state.date.year,
-                state.date.month,
-                state.date.day,
-                now.hour,
-                now.minute,
-              );
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => AddFoodPage(initialDate: initialDate),
-                ),
-              );
-            },
-            icon: const Icon(Icons.add),
-            label: Text(t.addMeal),
+          floatingActionButton: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FloatingActionButton(
+                heroTag: 'historyDetailQuickAddFab',
+                tooltip: t.quickAdd,
+                onPressed: () => showQuickAddSheet(context, state.date),
+                child: const Icon(Icons.bolt),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton.extended(
+                heroTag: 'historyDetailAddMealFab',
+                onPressed: () {
+                  final now = DateTime.now();
+                  final initialDate = DateTime(state.date.year, state.date.month, state.date.day, now.hour, now.minute);
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddFoodPage(initialDate: initialDate)));
+                },
+                icon: const Icon(Icons.add),
+                label: Text(t.addMeal),
+              ),
+            ],
           ),
           body: body,
         );

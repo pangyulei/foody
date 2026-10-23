@@ -17,9 +17,7 @@ class TodayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          TodayBloc(repository: context.read<MealRepository>())
-            ..add(const LoadTodayMeals()),
+      create: (context) => TodayBloc(repository: context.read<MealRepository>())..add(const LoadTodayMeals()),
       child: const _TodayView(),
     );
   }
@@ -54,7 +52,6 @@ class _TodayView extends StatelessWidget {
             final t = AppStrings.of(context);
             return DayLogContentView(
               meals: state.meals,
-              date: DateTime.now(),
               summaryTitle: t.intakeToday,
               emptyMessage: t.emptyToday,
               goals: settingsState.settings,

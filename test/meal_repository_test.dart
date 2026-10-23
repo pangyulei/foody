@@ -37,12 +37,7 @@ void main() {
         basisAmount: 100,
         unitName: 'ml',
       );
-      final meal = Meal.fromFood(
-        food: food,
-        quantity: 2,
-        createTime: DateTime(2026, 10, 19, 8, 30),
-        note: 'Breakfast',
-      );
+      final meal = Meal.fromFood(food: food, quantity: 2, createTime: DateTime(2026, 10, 19, 8, 30), note: 'Breakfast');
 
       await repository.saveMeal(meal);
       expect(meal.id, greaterThan(0));
@@ -68,35 +63,11 @@ void main() {
     });
 
     test('groups meals by day with totals, newest day first', () async {
-      final food = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
+      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
 
-      await repository.saveMeal(
-        Meal.fromFood(
-          food: food,
-          quantity: 1,
-          createTime: DateTime(2026, 10, 18, 8),
-        ),
-      );
-      await repository.saveMeal(
-        Meal.fromFood(
-          food: food,
-          quantity: 2,
-          createTime: DateTime(2026, 10, 18, 18),
-        ),
-      );
-      await repository.saveMeal(
-        Meal.fromFood(
-          food: food,
-          quantity: 1,
-          createTime: DateTime(2026, 10, 19, 9),
-        ),
-      );
+      await repository.saveMeal(Meal.fromFood(food: food, quantity: 1, createTime: DateTime(2026, 10, 18, 8)));
+      await repository.saveMeal(Meal.fromFood(food: food, quantity: 2, createTime: DateTime(2026, 10, 18, 18)));
+      await repository.saveMeal(Meal.fromFood(food: food, quantity: 1, createTime: DateTime(2026, 10, 19, 9)));
 
       final days = await repository.getMealsByDay();
       expect(days, hasLength(2));
@@ -114,17 +85,8 @@ void main() {
     });
 
     test('saves and loads a CustomFood meal snapshot', () async {
-      final food = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
-      final meal = Meal.fromFood(
-        food: food,
-        createTime: DateTime(2026, 10, 19, 12),
-      );
+      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+      final meal = Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 12));
 
       await repository.saveMeal(meal);
 
@@ -136,26 +98,11 @@ void main() {
     });
 
     test('updates a meal with a new food snapshot', () async {
-      final premade = PremadeFood(
-        name: '牛奶',
-        kj: 251,
-        carbs: 10,
-        protein: 6,
-        fat: 8,
-      );
-      final meal = Meal.fromFood(
-        food: premade,
-        createTime: DateTime(2026, 10, 19, 8),
-      );
+      final premade = PremadeFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8);
+      final meal = Meal.fromFood(food: premade, createTime: DateTime(2026, 10, 19, 8));
       await repository.saveMeal(meal);
 
-      final custom = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
+      final custom = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
       final updated = Meal.fromFood(
         id: meal.id,
         food: custom,
@@ -176,17 +123,8 @@ void main() {
     });
 
     test('later food changes do not alter an existing meal', () async {
-      final food = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
-      final meal = Meal.fromFood(
-        food: food,
-        createTime: DateTime(2026, 10, 19, 8),
-      );
+      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+      final meal = Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 8));
 
       food
         ..name = '改名后的鸡蛋'
@@ -200,23 +138,13 @@ void main() {
     });
 
     test('deleting a food does not change existing diet meals', () async {
-      final food = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
+      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
       await foodRepository.saveFood(food);
-      final meal = Meal.fromFood(
-        food: food,
-        quantity: 2,
-        createTime: DateTime(2026, 10, 19, 8),
-      );
+      final meal = Meal.fromFood(food: food, quantity: 2, createTime: DateTime(2026, 10, 19, 8));
       await repository.saveMeal(meal);
 
       expect(await foodRepository.deleteFood(food), isTrue);
-      expect(await foodRepository.getRecentFoods(), isEmpty);
+      expect(await foodRepository.getQuickAddFoods(), isEmpty);
 
       final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
       expect(loaded, hasLength(1));
@@ -226,18 +154,9 @@ void main() {
     });
 
     test('deleting a meal does not remove food catalogue entries', () async {
-      final food = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
+      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
       await foodRepository.saveFood(food);
-      final meal = Meal.fromFood(
-        food: food,
-        createTime: DateTime(2026, 10, 19, 8),
-      );
+      final meal = Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 8));
       await repository.saveMeal(meal);
 
       final deleted = await repository.deleteMeal(meal.id);
@@ -246,7 +165,7 @@ void main() {
       final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
       expect(loaded, isEmpty);
 
-      final recent = await foodRepository.getRecentFoods();
+      final recent = await foodRepository.getQuickAddFoods();
       expect(recent, hasLength(1));
       expect(recent.first.name, '鸡蛋');
     });

@@ -22,21 +22,15 @@ class FoodRepository {
 
   /// All pure foods in the catalogue, newest first.
   Future<List<Food>> getAllFoods() async {
-    final premadeRows = await (_db.select(
-      _db.premadeFoods,
-    )..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
-    final customRows = await (_db.select(
-      _db.customFoods,
-    )..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
+    final premadeRows = await (_db.select(_db.premadeFoods)..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
+    final customRows = await (_db.select(_db.customFoods)..orderBy([(t) => OrderingTerm.desc(t.lastUsedTime)])).get();
 
-    return <Food>[
-      ...premadeRows.map(PremadeFood.fromRow),
-      ...customRows.map(CustomFood.fromRow),
-    ]..sort((a, b) => b.lastUsedTime.compareTo(a.lastUsedTime));
+    return <Food>[...premadeRows.map(PremadeFood.fromRow), ...customRows.map(CustomFood.fromRow)]
+      ..sort((a, b) => b.lastUsedTime.compareTo(a.lastUsedTime));
   }
 
   /// Recently used pure foods, for the quick-add selector.
-  Future<List<Food>> getRecentFoods({int limit = 20}) async {
+  Future<List<Food>> getQuickAddFoods({int limit = 20}) async {
     final foods = await getAllFoods();
     return foods.take(limit).toList();
   }
@@ -55,12 +49,8 @@ class FoodRepository {
   /// Deletes a food from the catalogue. Diet meals keep their snapshots.
   Future<bool> deleteFood(Food food) async {
     final count = switch (food) {
-      PremadeFood() => await (_db.delete(
-        _db.premadeFoods,
-      )..where((t) => t.id.equals(food.id))).go(),
-      CustomFood() => await (_db.delete(
-        _db.customFoods,
-      )..where((t) => t.id.equals(food.id))).go(),
+      PremadeFood() => await (_db.delete(_db.premadeFoods)..where((t) => t.id.equals(food.id))).go(),
+      CustomFood() => await (_db.delete(_db.customFoods)..where((t) => t.id.equals(food.id))).go(),
       _ => throw ArgumentError('Unsupported food type: ${food.runtimeType}'),
     };
     if (count > 0) _changes.add(null);
@@ -83,9 +73,7 @@ class FoodRepository {
     );
 
     if (food.id > 0) {
-      await (_db.update(
-        _db.premadeFoods,
-      )..where((t) => t.id.equals(food.id))).write(values);
+      await (_db.update(_db.premadeFoods)..where((t) => t.id.equals(food.id))).write(values);
       return food.id;
     }
 
@@ -105,9 +93,7 @@ class FoodRepository {
     );
 
     if (food.id > 0) {
-      await (_db.update(
-        _db.customFoods,
-      )..where((t) => t.id.equals(food.id))).write(values);
+      await (_db.update(_db.customFoods)..where((t) => t.id.equals(food.id))).write(values);
       return food.id;
     }
 

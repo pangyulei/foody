@@ -21,8 +21,7 @@ class _QuickFoodSelectorState extends State<QuickFoodSelector> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _foodsFuture ??= RepositoryProvider.of<FoodRepository>(context)
-        .getRecentFoods(limit: 15);
+    _foodsFuture ??= RepositoryProvider.of<FoodRepository>(context).getQuickAddFoods(limit: 15);
   }
 
   @override
@@ -33,16 +32,16 @@ class _QuickFoodSelectorState extends State<QuickFoodSelector> {
     return FutureBuilder<List<Food>>(
       future: foodsFuture,
       builder: (context, snapshot) {
-        final recentFoods = snapshot.data;
-        if (recentFoods == null || recentFoods.isEmpty) {
+        final foods = snapshot.data;
+        if (foods == null || foods.isEmpty) {
           return const SizedBox.shrink();
         }
-        return _buildSelector(context, recentFoods);
+        return _buildSelector(context, foods);
       },
     );
   }
 
-  Widget _buildSelector(BuildContext context, List<Food> recentFoods) {
+  Widget _buildSelector(BuildContext context, List<Food> foods) {
     final t = AppStrings.of(context);
     return Card(
       elevation: 0,
@@ -56,14 +55,10 @@ class _QuickFoodSelectorState extends State<QuickFoodSelector> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.history,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Icon(Icons.bolt, size: 18, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 6),
                 Text(
-                  t.quickAddTitle,
+                  t.quickAdd,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -71,39 +66,23 @@ class _QuickFoodSelectorState extends State<QuickFoodSelector> {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  t.tapToFill,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ),
+                Text(t.tapToFill, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline)),
               ],
             ),
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: recentFoods.map((food) {
-                  final kcalText = EnergyConverter.formatKcal(
-                    food.kj,
-                    fractionDigits: 0,
-                  );
+                children: foods.map((food) {
+                  final kcalText = EnergyConverter.formatKcal(food.kj, fractionDigits: 0);
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: ActionChip(
                       avatar: CircleAvatar(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .primaryContainer,
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                         child: Text(
                           food.name.isNotEmpty ? food.name[0] : 'F',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
-                          ),
+                          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onPrimaryContainer),
                         ),
                       ),
                       label: Text('${food.name} ($kcalText)'),

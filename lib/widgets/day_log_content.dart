@@ -7,12 +7,10 @@ import '../models/meal.dart';
 import '../pages/add_food/add_food_page.dart';
 import 'daily_summary_card.dart';
 import 'food_item_tile.dart';
-import 'quick_add_sheet.dart';
 
 /// Shared day view used by Today and by a history day detail page.
 class DayLogContentView extends StatelessWidget {
   final List<Meal> meals;
-  final DateTime date;
   final String summaryTitle;
   final String emptyMessage;
   final AppSettings? goals;
@@ -22,12 +20,11 @@ class DayLogContentView extends StatelessWidget {
   const DayLogContentView({
     super.key,
     required this.meals,
-    required this.date,
     required this.summaryTitle,
     required this.emptyMessage,
     this.goals,
     required this.onDeleteLog,
-    this.bottomPadding = 88,
+    this.bottomPadding = 140,
   });
 
   @override
@@ -54,27 +51,8 @@ class DayLogContentView extends StatelessWidget {
         // 记录标题栏
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  t.mealCount(meals.length),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () => showQuickAddSheet(context, date),
-                  icon: const Icon(Icons.history, size: 18),
-                  label: Text(t.recentFoods),
-                ),
-              ],
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Text(t.mealCount(meals.length), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ),
 
@@ -86,19 +64,12 @@ class DayLogContentView extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.no_meals_outlined,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
+                  Icon(Icons.no_meals_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(height: 16),
                   Text(
                     emptyMessage,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.outline,
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 15),
                   ),
                 ],
               ),
@@ -111,11 +82,7 @@ class DayLogContentView extends StatelessWidget {
               return FoodItemTile(
                 meal: meal,
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => AddFoodPage(initialMeal: meal),
-                    ),
-                  );
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddFoodPage(initialMeal: meal)));
                 },
                 onDelete: () => onDeleteLog(meal.id),
               );

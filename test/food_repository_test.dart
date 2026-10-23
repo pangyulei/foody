@@ -21,7 +21,7 @@ void main() {
       await database.close();
     });
 
-    test('saves foods and lists recent foods newest first', () async {
+    test('saves foods and lists quick-add foods newest first', () async {
       final egg = CustomFood(
         name: '鸡蛋',
         kj: 300,
@@ -42,7 +42,7 @@ void main() {
       expect(await repository.saveFood(egg), greaterThan(0));
       expect(await repository.saveFood(milk), greaterThan(0));
 
-      final recent = await repository.getRecentFoods();
+      final recent = await repository.getQuickAddFoods();
       expect(recent, hasLength(2));
       expect(recent.first.name, '牛奶');
       expect(recent.last.name, '鸡蛋');
@@ -51,13 +51,7 @@ void main() {
     });
 
     test('updates an existing food', () async {
-      final food = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
+      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
       final id = await repository.saveFood(food);
 
       food
@@ -65,19 +59,15 @@ void main() {
         ..kj = 350;
       expect(await repository.saveFood(food), id);
 
-      final recent = await repository.getRecentFoods();
+      final recent = await repository.getQuickAddFoods();
       expect(recent, hasLength(1));
       expect(recent.single.name, '煎蛋');
       expect(recent.single.kj, 350);
     });
 
     test('getAllFoods returns every catalogue entry', () async {
-      await repository.saveFood(
-        CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5),
-      );
-      await repository.saveFood(
-        PremadeFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8),
-      );
+      await repository.saveFood(CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5));
+      await repository.saveFood(PremadeFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8));
 
       final foods = await repository.getAllFoods();
       expect(foods, hasLength(2));
@@ -89,27 +79,16 @@ void main() {
       final mealRepository = MealRepository(database);
       addTearDown(mealRepository.dispose);
 
-      final food = CustomFood(
-        name: '鸡蛋',
-        kj: 300,
-        carbs: 1,
-        protein: 6,
-        fat: 5,
-      );
+      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
       await repository.saveFood(food);
 
-      final meal = Meal.fromFood(
-        food: food,
-        createTime: DateTime(2026, 10, 19, 9),
-      );
+      final meal = Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 9));
       await mealRepository.saveMeal(meal);
 
       expect(await repository.deleteFood(food), isTrue);
       expect(await repository.getAllFoods(), isEmpty);
 
-      final meals = await mealRepository.getMealsForDate(
-        DateTime(2026, 10, 19),
-      );
+      final meals = await mealRepository.getMealsForDate(DateTime(2026, 10, 19));
       expect(meals, hasLength(1));
       expect(meals.single.foodName, '鸡蛋');
       expect(meals.single.kj, 300);
