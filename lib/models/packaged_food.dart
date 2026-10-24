@@ -2,7 +2,7 @@ import '../services/app_database.dart';
 import 'food.dart';
 
 /// 包装食品：带有营养成分表、按“基准份量”标注营养数值的食物。
-class PackagedFood implements Food {
+class PackagedFood extends Food {
   @override
   int id;
 
@@ -29,9 +29,11 @@ class PackagedFood implements Food {
   double netContent;
 
   /// 成分表基准份量（例如 100）
+  @override
   double basisAmount;
 
   /// 计量单位：ml / g / 份
+  @override
   String unitName;
 
   @override

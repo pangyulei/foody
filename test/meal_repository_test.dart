@@ -2,7 +2,6 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foody/extensions/meal_extensions.dart';
 import 'package:foody/models/custom_food.dart';
-import 'package:foody/models/food_source.dart';
 import 'package:foody/models/meal.dart';
 import 'package:foody/models/packaged_food.dart';
 import 'package:foody/repositories/food_repository.dart';
@@ -26,7 +25,7 @@ void main() {
       await database.close();
     });
 
-    test('saves and loads a PackagedFood meal snapshot', () async {
+    test('saves and loads a PackagedFood meal reference', () async {
       final food = PackagedFood(
         name: '牛奶',
         kj: 251,
@@ -37,7 +36,13 @@ void main() {
         basisAmount: 100,
         unitName: 'ml',
       );
-      final meal = Meal.fromFood(food: food, quantity: 2, createTime: DateTime(2026, 10, 19, 8, 30), note: 'Breakfast');
+      await foodRepository.saveFood(food);
+      final meal = Meal.fromFood(
+        food: food,
+        quantity: 2,
+        createTime: DateTime(2026, 10, 19, 8, 30),
+        note: 'Breakfast',
+      );
 
       await repository.saveMeal(meal);
       expect(meal.id, greaterThan(0));
@@ -45,17 +50,17 @@ void main() {
       final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
       expect(loaded, hasLength(1));
 
-      final loadedLog = loaded.first;
+      final loadedLog = loaded.first as PackagedMeal;
       expect(loadedLog.id, meal.id);
       expect(loadedLog.foodName, '牛奶');
-      expect(loadedLog.foodSource, FoodSource.packaged);
-      expect(loadedLog.netContent, 200);
-      expect(loadedLog.basisAmount, 100);
-      expect(loadedLog.unitName, 'ml');
+      expect(loadedLog, isA<PackagedMeal>());
+      expect(loadedLog.food.netContent, 200);
+      expect(loadedLog.food.basisAmount, 100);
+      expect(loadedLog.food.unitName, 'ml');
       expect(loadedLog.quantity, 2);
       expect(loadedLog.createTime, DateTime(2026, 10, 19, 8, 30));
       expect(loadedLog.note, 'Breakfast');
-      expect(loadedLog.kj, 251);
+      expect(loadedLog.food.kj, 251);
       expect(loadedLog.totalKj, 502);
       expect(loadedLog.totalCarbs, 20);
       expect(loadedLog.totalProtein, 12);
@@ -63,11 +68,38 @@ void main() {
     });
 
     test('groups meals by day with totals, newest day first', () async {
-      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+        basisAmount: 100,
+        unitName: 'g',
+      );
+      await foodRepository.saveFood(food);
 
-      await repository.saveMeal(Meal.fromFood(food: food, quantity: 1, createTime: DateTime(2026, 10, 18, 8)));
-      await repository.saveMeal(Meal.fromFood(food: food, quantity: 2, createTime: DateTime(2026, 10, 18, 18)));
-      await repository.saveMeal(Meal.fromFood(food: food, quantity: 1, createTime: DateTime(2026, 10, 19, 9)));
+      await repository.saveMeal(
+        Meal.fromFood(
+          food: food,
+          netContent: 100,
+          createTime: DateTime(2026, 10, 18, 8),
+        ),
+      );
+      await repository.saveMeal(
+        Meal.fromFood(
+          food: food,
+          netContent: 200,
+          createTime: DateTime(2026, 10, 18, 18),
+        ),
+      );
+      await repository.saveMeal(
+        Meal.fromFood(
+          food: food,
+          netContent: 100,
+          createTime: DateTime(2026, 10, 19, 9),
+        ),
+      );
 
       final days = await repository.getMealsByDay();
       expect(days, hasLength(2));
@@ -84,28 +116,59 @@ void main() {
       expect(older.totalFat, 15);
     });
 
-    test('saves and loads a CustomFood meal snapshot', () async {
-      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
-      final meal = Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 12));
+    test('saves and loads a CustomFood meal reference', () async {
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+        basisAmount: 100,
+        unitName: 'g',
+      );
+      await foodRepository.saveFood(food);
+      final meal = Meal.fromFood(
+        food: food,
+        netContent: 100,
+        createTime: DateTime(2026, 10, 19, 12),
+      );
 
       await repository.saveMeal(meal);
 
       final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
       expect(loaded, hasLength(1));
       expect(loaded.first.foodName, '鸡蛋');
-      expect(loaded.first.foodSource, FoodSource.custom);
+      expect(loaded.first, isA<CustomMeal>());
+      expect((loaded.first as CustomMeal).netContent, 100);
       expect(loaded.first.totalKj, 300);
     });
 
-    test('updates a meal with a new food snapshot', () async {
-      final packaged = PackagedFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8);
-      final meal = Meal.fromFood(food: packaged, createTime: DateTime(2026, 10, 19, 8));
+    test('updates a meal to reference another packaged food', () async {
+      final firstFood = PackagedFood(
+        name: '牛奶',
+        kj: 251,
+        carbs: 10,
+        protein: 6,
+        fat: 8,
+      );
+      await foodRepository.saveFood(firstFood);
+      final meal = Meal.fromFood(
+        food: firstFood,
+        createTime: DateTime(2026, 10, 19, 8),
+      );
       await repository.saveMeal(meal);
 
-      final custom = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+      final secondFood = PackagedFood(
+        name: '豆浆',
+        kj: 300,
+        carbs: 5,
+        protein: 7,
+        fat: 4,
+      );
+      await foodRepository.saveFood(secondFood);
       final updated = Meal.fromFood(
         id: meal.id,
-        food: custom,
+        food: secondFood,
         quantity: 2,
         createTime: meal.createTime,
         note: 'Updated',
@@ -115,51 +178,85 @@ void main() {
       final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
       expect(loaded, hasLength(1));
       expect(loaded.first.id, meal.id);
-      expect(loaded.first.foodName, '鸡蛋');
-      expect(loaded.first.foodSource, FoodSource.custom);
-      expect(loaded.first.quantity, 2);
+      expect(loaded.first.foodName, '豆浆');
+      expect(loaded.first, isA<PackagedMeal>());
+      expect((loaded.first as PackagedMeal).quantity, 2);
       expect(loaded.first.note, 'Updated');
       expect(loaded.first.totalKj, 600);
     });
 
-    test('later food changes do not alter an existing meal', () async {
-      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
-      final meal = Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 8));
+    test('editing a food updates its meal history', () async {
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+      await foodRepository.saveFood(food);
+      await repository.saveMeal(
+        Meal.fromFood(
+          food: food,
+          netContent: 100,
+          createTime: DateTime(2026, 10, 19, 8),
+        ),
+      );
 
       food
         ..name = '改名后的鸡蛋'
         ..kj = 999;
+      await foodRepository.saveFood(food);
 
-      await repository.saveMeal(meal);
       final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
-
-      expect(loaded.first.foodName, '鸡蛋');
-      expect(loaded.first.kj, 300);
+      expect(loaded.first.foodName, '改名后的鸡蛋');
+      expect(loaded.first.food.kj, 999);
+      expect(loaded.first.totalKj, 999);
     });
 
-    test('deleting a food does not change existing diet meals', () async {
-      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+    test('deleting a referenced food is blocked', () async {
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
       await foodRepository.saveFood(food);
-      final meal = Meal.fromFood(food: food, quantity: 2, createTime: DateTime(2026, 10, 19, 8));
+      final meal = Meal.fromFood(
+        food: food,
+        netContent: 200,
+        createTime: DateTime(2026, 10, 19, 8),
+      );
       await repository.saveMeal(meal);
 
-      expect(await foodRepository.deleteFood(food), isTrue);
-      expect(await foodRepository.getQuickAddFoods(), isEmpty);
+      await expectLater(
+        foodRepository.deleteFood(food),
+        throwsA(isA<FoodInUseException>()),
+      );
 
       final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
       expect(loaded, hasLength(1));
       expect(loaded.first.foodName, '鸡蛋');
-      expect(loaded.first.kj, 300);
       expect(loaded.first.totalKj, 600);
     });
 
     test('deleting a meal does not remove food catalogue entries', () async {
-      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
       await foodRepository.saveFood(food);
-      final meal = Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 8));
+      final meal = Meal.fromFood(
+        food: food,
+        netContent: 100,
+        createTime: DateTime(2026, 10, 19, 8),
+      );
       await repository.saveMeal(meal);
 
-      final deleted = await repository.deleteMeal(meal.id);
+      final deleted = await repository.deleteMeal(meal);
       expect(deleted, isTrue);
 
       final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
@@ -168,6 +265,90 @@ void main() {
       final recent = await foodRepository.getQuickAddFoods();
       expect(recent, hasLength(1));
       expect(recent.first.name, '鸡蛋');
+    });
+
+    test('maintains daily summaries on save, move, and delete', () async {
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+      await foodRepository.saveFood(food);
+
+      final dayOne = DateTime(2026, 10, 18, 8);
+      final dayTwo = DateTime(2026, 10, 19, 9);
+      final meal = Meal.fromFood(
+        food: food,
+        netContent: 100,
+        createTime: dayOne,
+      );
+      await repository.saveMeal(meal);
+
+      var summaries = await repository.getDailySummaries();
+      expect(summaries, hasLength(1));
+      expect(summaries.single.day, DateTime(2026, 10, 18));
+      expect(summaries.single.totalKj, 300);
+      expect(summaries.single.totalCarbs, 1);
+      expect(summaries.single.totalProtein, 6);
+      expect(summaries.single.totalFat, 5);
+      expect(summaries.single.mealCount, 1);
+
+      // Moving the meal must refresh both the old and the new day.
+      final moved = Meal.fromFood(
+        id: meal.id,
+        food: food,
+        netContent: 200,
+        createTime: dayTwo,
+      );
+      await repository.saveMeal(moved);
+
+      summaries = await repository.getDailySummaries();
+      expect(summaries, hasLength(1));
+      expect(summaries.single.day, DateTime(2026, 10, 19));
+      expect(summaries.single.totalKj, 600);
+      expect(summaries.single.mealCount, 1);
+
+      await repository.deleteMeal(moved);
+      expect(await repository.getDailySummaries(), isEmpty);
+    });
+
+    test('daily summary combines packaged and custom meals', () async {
+      final custom = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+      final packaged = PackagedFood(
+        name: '牛奶',
+        kj: 251,
+        carbs: 10,
+        protein: 6,
+        fat: 8,
+        netContent: 200,
+        basisAmount: 100,
+        unitName: 'ml',
+      );
+      await foodRepository.saveFood(custom);
+      await foodRepository.saveFood(packaged);
+
+      final day = DateTime(2026, 10, 19, 8);
+      await repository.saveMeal(
+        Meal.fromFood(food: custom, netContent: 100, createTime: day),
+      );
+      await repository.saveMeal(
+        Meal.fromFood(food: packaged, quantity: 2, createTime: day),
+      );
+
+      final summary = (await repository.getDailySummaries()).single;
+      expect(summary.mealCount, 2);
+      expect(summary.totalKj, closeTo(802, 0.001));
+      expect(summary.totalCarbs, closeTo(21, 0.001));
+      expect(summary.totalProtein, closeTo(18, 0.001));
+      expect(summary.totalFat, closeTo(21, 0.001));
     });
   });
 }

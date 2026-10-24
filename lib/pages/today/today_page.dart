@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../l10n/app_strings.dart';
+import '../../repositories/food_repository.dart';
 import '../../repositories/meal_repository.dart';
 import '../../widgets/day_log_content.dart';
 import '../../widgets/error_view.dart';
@@ -17,7 +18,10 @@ class TodayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => TodayBloc(repository: context.read<MealRepository>())..add(const LoadTodayMeals()),
+      create: (context) => TodayBloc(
+        repository: context.read<MealRepository>(),
+        foodRepository: context.read<FoodRepository>(),
+      )..add(const LoadTodayMeals()),
       child: const _TodayView(),
     );
   }
@@ -55,8 +59,8 @@ class _TodayView extends StatelessWidget {
               summaryTitle: t.intakeToday,
               emptyMessage: t.emptyToday,
               goals: settingsState.settings,
-              onDeleteLog: (id) {
-                context.read<TodayBloc>().add(DeleteTodayMeal(id));
+              onDeleteLog: (meal) {
+                context.read<TodayBloc>().add(DeleteTodayMeal(meal));
               },
             );
           },

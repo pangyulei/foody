@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../models/meal.dart';
+
 abstract class HistoryDetailEvent extends Equatable {
   const HistoryDetailEvent();
 
@@ -29,10 +31,10 @@ class RefreshHistoryDetail extends HistoryDetailEvent {
 
 /// Delete one of the selected day's meals.
 class DeleteHistoryDetailMeal extends HistoryDetailEvent {
-  final int id;
+  final Meal meal;
 
-  const DeleteHistoryDetailMeal(this.id);
+  const DeleteHistoryDetailMeal(this.meal);
 
   @override
-  List<Object?> get props => [id];
+  List<Object?> get props => [meal.id, meal is CustomMeal];
 }

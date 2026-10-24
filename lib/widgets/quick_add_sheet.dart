@@ -19,7 +19,9 @@ void showQuickAddSheet(BuildContext context, DateTime targetDate) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
     builder: (bottomSheetContext) {
       return DraggableScrollableSheet(
         initialChildSize: 0.6,
@@ -36,21 +38,38 @@ void showQuickAddSheet(BuildContext context, DateTime targetDate) {
                   child: Container(
                     width: 40,
                     height: 4,
-                    decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.bolt, color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.bolt,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
-                    Text(t.quickAdd, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      t.quickAdd,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  t.quickAddSubtitle(DateFormat('yyyy-MM-dd').format(targetDate)),
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+                  t.quickAddSubtitle(
+                    DateFormat('yyyy-MM-dd').format(targetDate),
+                  ),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
                 ),
                 const Divider(height: 20),
                 Expanded(
@@ -67,7 +86,11 @@ void showQuickAddSheet(BuildContext context, DateTime targetDate) {
                           child: Text(
                             t.noQuickAddFoods,
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                           ),
                         );
                       }
@@ -84,7 +107,10 @@ void showQuickAddSheet(BuildContext context, DateTime targetDate) {
                             onAdded: () {
                               Navigator.of(bottomSheetContext).pop();
                               messenger.showSnackBar(
-                                SnackBar(content: Text(t.quickAdded(food.name)), duration: const Duration(seconds: 2)),
+                                SnackBar(
+                                  content: Text(t.quickAdded(food.name)),
+                                  duration: const Duration(seconds: 2),
+                                ),
                               );
                             },
                           );
@@ -108,7 +134,12 @@ class _QuickAddFoodTile extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onAdded;
 
-  const _QuickAddFoodTile({required this.food, required this.targetDate, required this.strings, required this.onAdded});
+  const _QuickAddFoodTile({
+    required this.food,
+    required this.targetDate,
+    required this.strings,
+    required this.onAdded,
+  });
 
   @override
   State<_QuickAddFoodTile> createState() => _QuickAddFoodTileState();
@@ -133,7 +164,13 @@ class _QuickAddFoodTileState extends State<_QuickAddFoodTile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(food.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(
+                    food.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     '${totalKcal.toStringAsFixed(1)} kcal',
@@ -152,9 +189,17 @@ class _QuickAddFoodTileState extends State<_QuickAddFoodTile> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.remove_circle_outline, size: 20),
-                  onPressed: _quantity > 1 ? () => setState(() => _quantity -= 1) : null,
+                  onPressed: _quantity > 1
+                      ? () => setState(() => _quantity -= 1)
+                      : null,
                 ),
-                Text(_quantity.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(
+                  _quantity.toString(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline, size: 20),
                   onPressed: () => setState(() => _quantity += 1),
@@ -173,7 +218,11 @@ class _QuickAddFoodTileState extends State<_QuickAddFoodTile> {
                   now.minute,
                 );
 
-                final meal = Meal.fromFood(food: food, quantity: _quantity.toDouble(), createTime: recordTime);
+                final meal = Meal.fromFood(
+                  food: food,
+                  quantity: _quantity.toDouble(),
+                  createTime: recordTime,
+                );
 
                 final foodRepository = context.read<FoodRepository>();
                 final mealRepository = context.read<MealRepository>();

@@ -10,40 +10,56 @@ import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/services/app_database.dart';
 
 void main() {
-  test('catalogue bloc loads and deletes without touching meals', () async {
-    final database = AppDatabase(NativeDatabase.memory());
-    final foodRepository = FoodRepository(database);
-    final mealRepository = MealRepository(database);
+  test(
+    'catalogue bloc refuses to delete a food referenced by a meal',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      final foodRepository = FoodRepository(database);
+      final mealRepository = MealRepository(database);
 
-    final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
-    await foodRepository.saveFood(food);
-    await mealRepository.saveMeal(
-      Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 9)),
-    );
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+      await foodRepository.saveFood(food);
+      await mealRepository.saveMeal(
+        Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 9)),
+      );
 
-    final bloc = FoodCatalogueBloc(repository: foodRepository);
+      final bloc = FoodCatalogueBloc(repository: foodRepository);
 
-    addTearDown(() async {
-      await bloc.close();
-      await mealRepository.dispose();
-      await foodRepository.dispose();
-      await database.close();
-    });
+      addTearDown(() async {
+        await bloc.close();
+        await mealRepository.dispose();
+        await foodRepository.dispose();
+        await database.close();
+      });
 
-    final loaded = bloc.stream.firstWhere(
-      (state) => state is FoodCatalogueLoaded && state.foods.length == 1,
-    );
-    bloc.add(const LoadFoodCatalogue());
-    await loaded;
+      final loaded = bloc.stream.firstWhere(
+        (state) => state is FoodCatalogueLoaded && state.foods.length == 1,
+      );
+      bloc.add(const LoadFoodCatalogue());
+      await loaded;
 
-    final empty = bloc.stream.firstWhere(
-      (state) => state is FoodCatalogueLoaded && state.foods.isEmpty,
-    );
-    bloc.add(DeleteFoodCatalogueEntry(food));
-    await empty;
+      final blocked = bloc.stream.firstWhere(
+        (state) =>
+            state is FoodCatalogueLoaded && state.blockedDelete?.id == food.id,
+      );
+      bloc.add(DeleteFoodCatalogueEntry(food));
+      await blocked;
 
-    final meals = await mealRepository.getMealsForDate(DateTime(2026, 10, 19));
-    expect(meals, hasLength(1));
-    expect(meals.single.foodName, '鸡蛋');
-  });
+      final foods = await foodRepository.getAllFoods();
+      expect(foods, hasLength(1));
+      expect(foods.single.id, food.id);
+
+      final meals = await mealRepository.getMealsForDate(
+        DateTime(2026, 10, 19),
+      );
+      expect(meals, hasLength(1));
+      expect(meals.single.foodName, '鸡蛋');
+    },
+  );
 }

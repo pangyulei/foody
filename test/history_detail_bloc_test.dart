@@ -5,31 +5,38 @@ import 'package:foody/models/meal.dart';
 import 'package:foody/pages/history_detail/history_detail_bloc.dart';
 import 'package:foody/pages/history_detail/history_detail_event.dart';
 import 'package:foody/pages/history_detail/history_detail_state.dart';
+import 'package:foody/repositories/food_repository.dart';
 import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/services/app_database.dart';
 
 void main() {
   test('history detail switches days and refreshes on delete', () async {
     final database = AppDatabase(NativeDatabase.memory());
+    final foodRepository = FoodRepository(database);
     final repository = MealRepository(database);
     final bloc = HistoryDetailBloc(
       repository: repository,
+      foodRepository: foodRepository,
       date: DateTime(2026, 10, 18),
     );
 
     addTearDown(() async {
       await bloc.close();
+      await foodRepository.dispose();
       await repository.dispose();
       await database.close();
     });
 
     final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+    await foodRepository.saveFood(food);
     final selectedLog = Meal.fromFood(
       food: food,
+      netContent: 100,
       createTime: DateTime(2026, 10, 18, 8),
     );
     final otherLog = Meal.fromFood(
       food: food,
+      netContent: 100,
       createTime: DateTime(2026, 10, 19, 8),
     );
     await repository.saveMeal(selectedLog);
@@ -61,7 +68,7 @@ void main() {
     final empty = bloc.stream.firstWhere(
       (state) => state is HistoryDetailLoaded && state.meals.isEmpty,
     );
-    bloc.add(DeleteHistoryDetailMeal(selectedLog.id));
+    bloc.add(DeleteHistoryDetailMeal(selectedLog));
     await empty;
 
     final remaining = await repository.getMealsForDate(DateTime(2026, 10, 19));

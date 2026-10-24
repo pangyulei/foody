@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../models/meal.dart';
+
 abstract class TodayEvent extends Equatable {
   const TodayEvent();
 
@@ -19,10 +21,10 @@ class RefreshTodayMeals extends TodayEvent {
 
 /// Delete one of today's diet meals.
 class DeleteTodayMeal extends TodayEvent {
-  final int id;
+  final Meal meal;
 
-  const DeleteTodayMeal(this.id);
+  const DeleteTodayMeal(this.meal);
 
   @override
-  List<Object?> get props => [id];
+  List<Object?> get props => [meal.id, meal is CustomMeal];
 }

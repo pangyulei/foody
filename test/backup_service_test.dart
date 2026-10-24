@@ -5,7 +5,6 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foody/models/app_settings.dart';
 import 'package:foody/models/custom_food.dart';
-import 'package:foody/models/food_source.dart';
 import 'package:foody/models/meal.dart';
 import 'package:foody/models/packaged_food.dart';
 import 'package:foody/repositories/food_repository.dart';
@@ -15,12 +14,16 @@ import 'package:foody/services/backup_service.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
-  test('backup round-trips foods, meals, and settings', () async {
+  test('backup round-trips foods, both meal types, and settings', () async {
     final tempDir = await Directory.systemTemp.createTemp('foody_backup_test');
     final sourceDb = AppDatabase(NativeDatabase.memory());
     final sourceFoods = FoodRepository(sourceDb);
     final sourceMeals = MealRepository(sourceDb);
-    final sourceService = BackupService(database: sourceDb, foodRepository: sourceFoods, mealRepository: sourceMeals);
+    final sourceService = BackupService(
+      database: sourceDb,
+      foodRepository: sourceFoods,
+      mealRepository: sourceMeals,
+    );
 
     addTearDown(() async {
       await sourceMeals.dispose();
@@ -46,20 +49,39 @@ void main() {
       carbs: 1,
       protein: 6,
       fat: 5,
+      basisAmount: 100,
+      unitName: 'g',
       lastUsedTime: DateTime(2026, 10, 19, 10),
     );
     await sourceFoods.saveFood(packaged);
     await sourceFoods.saveFood(custom);
     await sourceMeals.saveMeal(
-      Meal.fromFood(food: packaged, quantity: 2, createTime: DateTime(2026, 10, 19, 8), note: 'Breakfast'),
+      Meal.fromFood(
+        food: packaged,
+        quantity: 2,
+        createTime: DateTime(2026, 10, 19, 8),
+        note: 'Breakfast',
+      ),
+    );
+    await sourceMeals.saveMeal(
+      Meal.fromFood(
+        food: custom,
+        netContent: 150,
+        createTime: DateTime(2026, 10, 19, 12),
+        note: 'Lunch',
+      ),
     );
 
     const settings = AppSettings(weightKg: 70, backupFolder: 'ignored');
-    final backupPath = await sourceService.createBackup(folderPath: tempDir.path, settings: settings);
+    final backupPath = await sourceService.createBackup(
+      folderPath: tempDir.path,
+      settings: settings,
+    );
     expect(File(backupPath).existsSync(), isTrue);
 
     // Simulate a restore over existing data.
-    await sourceDb.delete(sourceDb.meals).go();
+    await sourceDb.delete(sourceDb.packagedMeals).go();
+    await sourceDb.delete(sourceDb.customMeals).go();
     await sourceDb.delete(sourceDb.packagedFoods).go();
     await sourceDb.delete(sourceDb.customFoods).go();
     expect(await sourceFoods.getAllFoods(), isEmpty);
@@ -77,20 +99,41 @@ void main() {
     final importedCustom = foods.whereType<CustomFood>().single;
     expect(importedCustom.id, custom.id);
     expect(importedCustom.name, '鸡蛋');
+    expect(importedCustom.basisAmount, 100);
+    expect(importedCustom.unitName, 'g');
 
     final meals = await sourceMeals.getAllMeals();
-    expect(meals, hasLength(1));
-    expect(meals.single.foodName, '牛奶');
-    expect(meals.single.quantity, 2);
-    expect(meals.single.note, 'Breakfast');
+    expect(meals, hasLength(2));
+
+    final packagedMeal = meals.whereType<PackagedMeal>().single;
+    expect(packagedMeal.foodName, '牛奶');
+    expect(packagedMeal.quantity, 2);
+    expect(packagedMeal.note, 'Breakfast');
+    expect(packagedMeal.totalKj, 502);
+
+    final customMeal = meals.whereType<CustomMeal>().single;
+    expect(customMeal.foodName, '鸡蛋');
+    expect(customMeal.netContent, 150);
+    expect(customMeal.note, 'Lunch');
+    expect(customMeal.totalKj, 450);
+
+    final summaries = await sourceMeals.getDailySummaries();
+    expect(summaries, hasLength(1));
+    expect(summaries.single.day, DateTime(2026, 10, 19));
+    expect(summaries.single.mealCount, 2);
+    expect(summaries.single.totalKj, 952);
   });
 
-  test('restores a pre-v6 backup that uses the premadeFoods key', () async {
-    final tempDir = await Directory.systemTemp.createTemp('foody_backup_v5');
+  test('rejects backups from an unsupported version', () async {
+    final tempDir = await Directory.systemTemp.createTemp('foody_backup_old');
     final database = AppDatabase(NativeDatabase.memory());
     final foods = FoodRepository(database);
     final meals = MealRepository(database);
-    final service = BackupService(database: database, foodRepository: foods, mealRepository: meals);
+    final service = BackupService(
+      database: database,
+      foodRepository: foods,
+      mealRepository: meals,
+    );
 
     addTearDown(() async {
       await meals.dispose();
@@ -99,145 +142,21 @@ void main() {
       await tempDir.delete(recursive: true);
     });
 
-    final backupFile = File(p.join(tempDir.path, 'foody_backup_v5.json'));
+    final backupFile = File(p.join(tempDir.path, 'foody_backup_v1.json'));
     await backupFile.writeAsString(
       jsonEncode({
         'version': 1,
-        'createdAt': '2026-10-19T08:00:00.000',
-        'settings': {'languageCode': 'en', 'weightKg': 70},
-        'premadeFoods': [
-          {
-            'id': 7,
-            'name': '牛奶',
-            'kj': 251.0,
-            'carbs': 10.0,
-            'protein': 6.0,
-            'fat': 8.0,
-            'netContent': 250.0,
-            'basisAmount': 100.0,
-            'unitName': 'ml',
-            'lastUsedTime': '2026-10-19T09:00:00.000',
-          },
-        ],
-        'customFoods': [
-          {
-            'id': 9,
-            'name': '鸡蛋',
-            'kj': 300.0,
-            'carbs': 1.0,
-            'protein': 6.0,
-            'fat': 5.0,
-            'lastUsedTime': '2026-10-19T10:00:00.000',
-          },
-        ],
-        'meals': [
-          {
-            'id': 3,
-            'foodName': '牛奶',
-            'kj': 251.0,
-            'carbs': 10.0,
-            'protein': 6.0,
-            'fat': 8.0,
-            'rawFoodSource': 0,
-            'netContent': 250.0,
-            'basisAmount': 100.0,
-            'unitName': 'ml',
-            'quantity': 2.0,
-            'createTime': '2026-10-19T08:30:00.000',
-            'note': 'Breakfast',
-          },
-        ],
-      }),
-    );
-
-    final restoredSettings = await service.restoreBackup(backupFile.path);
-    expect(restoredSettings.languageCode, 'en');
-
-    final loadedFoods = await foods.getAllFoods();
-    expect(loadedFoods, hasLength(2));
-    final packaged = loadedFoods.whereType<PackagedFood>().single;
-    expect(packaged.id, 7);
-    expect(packaged.name, '牛奶');
-    expect(packaged.netContent, 250);
-    expect(loadedFoods.whereType<CustomFood>().single.name, '鸡蛋');
-
-    final loadedMeals = await meals.getMealsForDate(DateTime(2026, 10, 19));
-    expect(loadedMeals, hasLength(1));
-    expect(loadedMeals.single.id, 3);
-    expect(loadedMeals.single.foodName, '牛奶');
-    expect(loadedMeals.single.foodSource, FoodSource.packaged);
-    expect(loadedMeals.single.quantity, 2);
-    expect(loadedMeals.single.note, 'Breakfast');
-  });
-
-  test('restores legacy backup fields from older schemas', () async {
-    final tempDir = await Directory.systemTemp.createTemp('foody_backup_legacy');
-    final database = AppDatabase(NativeDatabase.memory());
-    final foods = FoodRepository(database);
-    final meals = MealRepository(database);
-    final service = BackupService(database: database, foodRepository: foods, mealRepository: meals);
-
-    addTearDown(() async {
-      await meals.dispose();
-      await foods.dispose();
-      await database.close();
-      await tempDir.delete(recursive: true);
-    });
-
-    final backupFile = File(p.join(tempDir.path, 'foody_backup_legacy.json'));
-    await backupFile.writeAsString(
-      jsonEncode({
-        'version': 0,
-        'settings': {'languageCode': 'zh'},
-        'premadeFoods': [
-          {
-            'id': 11,
-            'name': '面包',
-            'kj': 1000,
-            'carbs': 40,
-            'protein': 8,
-            'fat': 3,
-            // v1-v3 called the net content `servingAmount`.
-            'servingAmount': 300,
-            'basisAmount': 100,
-            'unitName': 'g',
-            'lastUsedTime': '2026-10-19T09:00:00.000',
-          },
-        ],
+        'settings': {'languageCode': 'en'},
+        'packagedFoods': const [],
         'customFoods': const [],
-        // v1/v2 used the `dietLogs` key and a text `inputMode`.
-        'dietLogs': [
-          {
-            'id': 5,
-            'foodName': '面包',
-            'kj': 1000,
-            'carbs': 40,
-            'protein': 8,
-            'fat': 3,
-            'inputMode': 'table',
-            'servingAmount': 300,
-            'basisAmount': 100,
-            'unitName': 'g',
-            'quantity': 1.5,
-            'createTime': '2026-10-19T08:30:00.000',
-          },
-        ],
+        'meals': const [],
       }),
     );
 
-    await service.restoreBackup(backupFile.path);
-
-    final packaged = (await foods.getAllFoods()).whereType<PackagedFood>().single;
-    expect(packaged.id, 11);
-    expect(packaged.name, '面包');
-    expect(packaged.netContent, 300);
-
-    final loadedMeals = await meals.getMealsForDate(DateTime(2026, 10, 19));
-    expect(loadedMeals, hasLength(1));
-    expect(loadedMeals.single.id, 5);
-    expect(loadedMeals.single.foodSource, FoodSource.packaged);
-    expect(loadedMeals.single.netContent, 300);
-    expect(loadedMeals.single.quantity, 1.5);
+    await expectLater(
+      service.restoreBackup(backupFile.path),
+      throwsA(isA<FormatException>()),
+    );
   });
 
   test('automatic backups use a timestamped file name', () async {
@@ -245,7 +164,11 @@ void main() {
     final database = AppDatabase(NativeDatabase.memory());
     final foods = FoodRepository(database);
     final meals = MealRepository(database);
-    final service = BackupService(database: database, foodRepository: foods, mealRepository: meals);
+    final service = BackupService(
+      database: database,
+      foodRepository: foods,
+      mealRepository: meals,
+    );
 
     addTearDown(() async {
       await meals.dispose();
@@ -268,7 +191,9 @@ void main() {
       automatic: true,
     );
 
-    final timestampPattern = RegExp(r'foody_auto_backup_\d{8}_\d{6}_\d{3}\.json$');
+    final timestampPattern = RegExp(
+      r'foody_auto_backup_\d{8}_\d{6}_\d{3}\.json$',
+    );
     expect(timestampPattern.hasMatch(firstPath), isTrue, reason: firstPath);
     expect(timestampPattern.hasMatch(secondPath), isTrue, reason: secondPath);
     expect(firstPath, isNot(secondPath));
@@ -286,7 +211,11 @@ void main() {
     final database = AppDatabase(NativeDatabase.memory());
     final foods = FoodRepository(database);
     final meals = MealRepository(database);
-    final service = BackupService(database: database, foodRepository: foods, mealRepository: meals);
+    final service = BackupService(
+      database: database,
+      foodRepository: foods,
+      mealRepository: meals,
+    );
 
     addTearDown(() async {
       await meals.dispose();
@@ -303,11 +232,16 @@ void main() {
     ]) {
       await File(p.join(tempDir.path, name)).writeAsString('{}');
     }
-    await File(p.join(tempDir.path, 'foody_backup_20260101_000005.json')).writeAsString('{}');
+    await File(p.join(tempDir.path, 'foody_backup_20260101_000005.json'))
+        .writeAsString('{}');
 
     await service.pruneAutomaticBackups(folderPath: tempDir.path, keep: 2);
 
-    final remaining = tempDir.listSync().whereType<File>().map((file) => p.basename(file.path)).toList();
+    final remaining = tempDir
+        .listSync()
+        .whereType<File>()
+        .map((file) => p.basename(file.path))
+        .toList();
     expect(remaining, hasLength(3));
     expect(remaining, contains('foody_auto_backup_20260101_000004.json'));
     expect(remaining, contains('foody_auto_backup_20260101_000003_123.json'));
@@ -315,11 +249,17 @@ void main() {
   });
 
   test('automatic backups apply retention but manual backups do not', () async {
-    final tempDir = await Directory.systemTemp.createTemp('foody_retention_run');
+    final tempDir = await Directory.systemTemp.createTemp(
+      'foody_retention_run',
+    );
     final database = AppDatabase(NativeDatabase.memory());
     final foods = FoodRepository(database);
     final meals = MealRepository(database);
-    final service = BackupService(database: database, foodRepository: foods, mealRepository: meals);
+    final service = BackupService(
+      database: database,
+      foodRepository: foods,
+      mealRepository: meals,
+    );
 
     addTearDown(() async {
       await meals.dispose();
@@ -329,7 +269,9 @@ void main() {
     });
 
     for (var i = 1; i <= 4; i++) {
-      await File(p.join(tempDir.path, 'foody_auto_backup_20000101_00000$i.json')).writeAsString('{}');
+      await File(
+        p.join(tempDir.path, 'foody_auto_backup_20000101_00000$i.json'),
+      ).writeAsString('{}');
     }
 
     const settings = AppSettings(autoBackupLimit: 2);
@@ -338,7 +280,11 @@ void main() {
     await service.createBackup(folderPath: tempDir.path, settings: settings);
     expect(_automaticBackupNames(tempDir), hasLength(4));
 
-    await service.createBackup(folderPath: tempDir.path, settings: settings, automatic: true);
+    await service.createBackup(
+      folderPath: tempDir.path,
+      settings: settings,
+      automatic: true,
+    );
 
     final remaining = _automaticBackupNames(tempDir);
     expect(remaining, hasLength(2));

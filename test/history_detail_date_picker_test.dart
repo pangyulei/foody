@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foody/pages/history_detail/history_detail_page.dart';
+import 'package:foody/repositories/food_repository.dart';
 import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/services/app_database.dart';
 
@@ -11,16 +12,21 @@ void main() {
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
+    final foodRepository = FoodRepository(database);
     final repository = MealRepository(database);
 
     addTearDown(() async {
+      await foodRepository.dispose();
       await repository.dispose();
       await database.close();
     });
 
     await tester.pumpWidget(
-      RepositoryProvider.value(
-        value: repository,
+      MultiRepositoryProvider(
+        providers: [
+          RepositoryProvider.value(value: foodRepository),
+          RepositoryProvider.value(value: repository),
+        ],
         child: MaterialApp(
           home: HistoryDetailPage(date: DateTime(2023, 5, 10)),
         ),

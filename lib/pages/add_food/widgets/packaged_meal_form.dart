@@ -3,21 +3,21 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_strings.dart';
+import '../../../models/custom_food.dart';
 import '../../../models/food.dart';
-import '../../../models/food_source.dart';
 import '../../../models/meal.dart';
 import '../../../models/packaged_food.dart';
 import 'nutrition_preview_card.dart';
 import 'quick_food_selector.dart';
 
-class NutritionTableForm extends StatefulWidget {
+class PackagedMealForm extends StatefulWidget {
   final Meal? initialMeal;
   final Food? initialFood;
   final bool catalogueMode;
   final DateTime? initialDate;
   final Function(Food food, Meal meal) onSubmit;
 
-  const NutritionTableForm({
+  const PackagedMealForm({
     super.key,
     this.initialMeal,
     this.initialFood,
@@ -27,10 +27,10 @@ class NutritionTableForm extends StatefulWidget {
   });
 
   @override
-  State<NutritionTableForm> createState() => _NutritionTableFormState();
+  State<PackagedMealForm> createState() => _PackagedMealFormState();
 }
 
-class _NutritionTableFormState extends State<NutritionTableForm> {
+class _PackagedMealFormState extends State<PackagedMealForm> {
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _nameController;
@@ -60,9 +60,12 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     _proteinController = TextEditingController();
     _fatController = TextEditingController();
     _kjController = TextEditingController();
-    _quantityController = TextEditingController(text: _formatNumber(meal?.quantity ?? 1.0));
+    _quantityController = TextEditingController(
+      text: _formatNumber(meal is PackagedMeal ? meal.quantity : 1.0),
+    );
     _noteController = TextEditingController(text: meal?.note ?? '');
-    _selectedDateTime = meal?.createTime ?? widget.initialDate ?? DateTime.now();
+    _selectedDateTime =
+        meal?.createTime ?? widget.initialDate ?? DateTime.now();
 
     if (meal != null) {
       _applyMeal(meal);
@@ -100,27 +103,38 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     return value.toString();
   }
 
-  /// 把纯食物的“每份”营养换算回成分表基准值
+  /// 把纯食物的每份营养换算回成分表基准值
   void _applyFood(Food food, {bool resetQuantity = false}) {
     _selectedFood = food;
     _nameController.text = food.name;
 
-    final packaged = food is PackagedFood ? food : null;
-    final netContent = (packaged != null && packaged.netContent > 0) ? packaged.netContent : 100.0;
-    final basis = (packaged != null && packaged.basisAmount > 0) ? packaged.basisAmount : 100.0;
-    if (packaged != null && (packaged.unitName == 'ml' || packaged.unitName == 'g')) {
-      _unitName = packaged.unitName;
+    if (food.unitName == 'ml' || food.unitName == 'g') {
+      _unitName = food.unitName;
     } else {
       _unitName = 'ml';
     }
 
-    final ratio = basis / netContent;
-    _netContentController.text = _formatNumber(netContent);
-    _unitAmountController.text = _formatNumber(basis);
-    _kjController.text = _formatNumber(food.kj * ratio);
-    _carbsController.text = _formatNumber(food.carbs * ratio);
-    _proteinController.text = _formatNumber(food.protein * ratio);
-    _fatController.text = _formatNumber(food.fat * ratio);
+    switch (food) {
+      case CustomFood():
+        _netContentController.text = _formatNumber(100);
+        _unitAmountController.text = _formatNumber(food.basisAmount);
+        _kjController.text = _formatNumber(food.kj);
+        _carbsController.text = _formatNumber(food.carbs);
+        _proteinController.text = _formatNumber(food.protein);
+        _fatController.text = _formatNumber(food.fat);
+      case PackagedFood():
+        final netContent = food.netContent > 0 ? food.netContent : 100.0;
+        final basis = food.basisAmount > 0 ? food.basisAmount : 100.0;
+        final ratio = basis / netContent;
+        _netContentController.text = _formatNumber(netContent);
+        _unitAmountController.text = _formatNumber(basis);
+        _kjController.text = _formatNumber(food.kj * ratio);
+        _carbsController.text = _formatNumber(food.carbs * ratio);
+        _proteinController.text = _formatNumber(food.protein * ratio);
+        _fatController.text = _formatNumber(food.fat * ratio);
+      default:
+        throw ArgumentError('Unsupported food type: ${food.runtimeType}');
+    }
 
     if (resetQuantity) {
       _quantityController.text = '1';
@@ -128,25 +142,12 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     }
   }
 
-  /// 从历史记录的快照还原表单（不引用 Food 表）。
+  /// 从历史记录还原表单。
   void _applyMeal(Meal meal) {
-    _nameController.text = meal.foodName;
-    final isPackaged = meal.foodSource == FoodSource.packaged;
-    final netContent = isPackaged && meal.netContent > 0 ? meal.netContent : 100.0;
-    final basis = isPackaged && meal.basisAmount > 0 ? meal.basisAmount : 100.0;
-    if (isPackaged && (meal.unitName == 'ml' || meal.unitName == 'g')) {
-      _unitName = meal.unitName;
-    } else {
-      _unitName = 'ml';
+    _applyFood(meal.food);
+    if (meal is PackagedMeal) {
+      _quantityController.text = _formatNumber(meal.quantity);
     }
-
-    final ratio = basis / netContent;
-    _netContentController.text = _formatNumber(netContent);
-    _unitAmountController.text = _formatNumber(basis);
-    _kjController.text = _formatNumber(meal.kj * ratio);
-    _carbsController.text = _formatNumber(meal.carbs * ratio);
-    _proteinController.text = _formatNumber(meal.protein * ratio);
-    _fatController.text = _formatNumber(meal.fat * ratio);
   }
 
   void _populateFromHistory(Food food) {
@@ -155,9 +156,12 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     });
 
     final t = AppStrings.of(context);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.filledFromHistoryTable(food.name)), duration: const Duration(seconds: 1)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(t.filledFromHistoryTable(food.name)),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   Future<void> _pickDateTime() async {
@@ -170,11 +174,20 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
     if (date == null) return;
 
     if (!mounted) return;
-    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_selectedDateTime));
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+    );
     if (time == null) return;
 
     setState(() {
-      _selectedDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      _selectedDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
     });
   }
 
@@ -189,12 +202,16 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final t = AppStrings.of(context);
-      final netContent = double.tryParse(_netContentController.text.trim()) ?? 100.0;
-      final basisAmount = double.tryParse(_unitAmountController.text.trim()) ?? 100.0;
+      final netContent =
+          double.tryParse(_netContentController.text.trim()) ?? 100.0;
+      final basisAmount =
+          double.tryParse(_unitAmountController.text.trim()) ?? 100.0;
       final quantity = int.tryParse(_quantityController.text.trim()) ?? 1;
 
       // 每份营养 = 成分表数值 × (净含量 / 基准份量)
-      final perServingMultiplier = basisAmount > 0 ? netContent / basisAmount : 1.0;
+      final perServingMultiplier = basisAmount > 0
+          ? netContent / basisAmount
+          : 1.0;
 
       final rawCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
       final rawProtein = double.tryParse(_proteinController.text.trim()) ?? 0.0;
@@ -244,8 +261,10 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
     final unitLabel = _unitName;
-    final netContent = double.tryParse(_netContentController.text.trim()) ?? 0.0;
-    final unitAmount = double.tryParse(_unitAmountController.text.trim()) ?? 100.0;
+    final netContent =
+        double.tryParse(_netContentController.text.trim()) ?? 0.0;
+    final unitAmount =
+        double.tryParse(_unitAmountController.text.trim()) ?? 100.0;
     final quantity = double.tryParse(_quantityController.text.trim()) ?? 1.0;
 
     final totalConsumedAmount = netContent * quantity;
@@ -267,7 +286,8 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
         padding: const EdgeInsets.all(16.0),
         children: [
           // 历史食品快速选择器
-          if (!widget.catalogueMode) QuickFoodSelector(onFoodSelected: _populateFromHistory),
+          if (!widget.catalogueMode)
+            QuickFoodSelector(onFoodSelected: _populateFromHistory),
 
           // 食品名称
           TextFormField(
@@ -292,7 +312,9 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
             Card(
               elevation: 0,
               color: Theme.of(context).colorScheme.surfaceContainerLow,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Row(
@@ -300,17 +322,31 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                     const Icon(Icons.format_list_numbered),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(t.servings, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      child: Text(
+                        t.servings,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
-                    IconButton.filledTonal(icon: const Icon(Icons.remove), onPressed: () => _updateQuantity(-1)),
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.remove),
+                      onPressed: () => _updateQuantity(-1),
+                    ),
                     SizedBox(
                       width: 72,
                       child: TextFormField(
                         controller: _quantityController,
                         textAlign: TextAlign.center,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                         decoration: const InputDecoration(
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(vertical: 8),
@@ -325,7 +361,10 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                         },
                       ),
                     ),
-                    IconButton.filledTonal(icon: const Icon(Icons.add), onPressed: () => _updateQuantity(1)),
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.add),
+                      onPressed: () => _updateQuantity(1),
+                    ),
                   ],
                 ),
               ),
@@ -337,13 +376,21 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           Card(
             elevation: 0,
             color: Theme.of(context).colorScheme.surfaceContainerLow,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(t.servingSection, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(
+                    t.servingSection,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   SegmentedButton<String>(
                     segments: [
@@ -367,7 +414,9 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                       Expanded(
                         child: TextFormField(
                           controller: _netContentController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: InputDecoration(
                             labelText: t.servingSize,
                             hintText: t.servingSizeHint,
@@ -389,7 +438,9 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                       Expanded(
                         child: TextFormField(
                           controller: _unitAmountController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: InputDecoration(
                             labelText: t.labelBasis,
                             hintText: t.labelBasisHint,
@@ -419,30 +470,47 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
           Card(
             elevation: 0,
             color: Theme.of(context).colorScheme.surfaceContainerLow,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(t.nutritionValuesTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(
+                    t.nutritionValuesTitle,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     t.nutritionValuesSubtitle(
-                      _unitAmountController.text.isEmpty ? '100' : _unitAmountController.text,
+                      _unitAmountController.text.isEmpty
+                          ? '100'
+                          : _unitAmountController.text,
                       unitLabel,
                     ),
-                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _kjController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: t.energyKj,
                       hintText: t.tableEnergyHint,
                       suffixText: 'kJ',
-                      prefixIcon: const Icon(Icons.local_fire_department_outlined),
+                      prefixIcon: const Icon(
+                        Icons.local_fire_department_outlined,
+                      ),
                       border: const OutlineInputBorder(),
                     ),
                     validator: (v) {
@@ -458,7 +526,9 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _carbsController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: t.carbsLabel,
                       hintText: t.tableCarbsHint,
@@ -470,7 +540,9 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _proteinController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: t.proteinLabel,
                       hintText: t.tableProteinHint,
@@ -482,7 +554,9 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _fatController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: t.fatLabel,
                       hintText: t.tableFatHint,
@@ -527,10 +601,14 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
 
             ListTile(
               tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               leading: const Icon(Icons.access_time),
               title: Text(t.recordTime),
-              subtitle: Text(DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime)),
+              subtitle: Text(
+                DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime),
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: _pickDateTime,
             ),
@@ -543,9 +621,13 @@ class _NutritionTableFormState extends State<NutritionTableForm> {
             label: Text(
               widget.catalogueMode
                   ? (widget.initialFood == null ? t.saveFood : t.updateFood)
-                  : (widget.initialMeal == null ? t.saveRecord : t.updateRecord),
+                  : (widget.initialMeal == null
+                        ? t.saveRecord
+                        : t.updateRecord),
             ),
-            style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
           ),
         ],
       ),

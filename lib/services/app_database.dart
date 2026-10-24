@@ -31,6 +31,7 @@ class PackagedFoods extends Table {
   DateTimeColumn get lastUsedTime => dateTime()();
 }
 
+/// Custom foods store nutrition per 100 ml/g ([basisAmount]).
 @DataClassName('CustomFoodRow')
 @TableIndex(name: 'idx_custom_foods_last_used', columns: {#lastUsedTime})
 class CustomFoods extends Table {
@@ -46,33 +47,20 @@ class CustomFoods extends Table {
 
   RealColumn get fat => real()();
 
-  DateTimeColumn get lastUsedTime => dateTime()();
-}
-
-/// A one-time eating record. Food attributes are copied into the meal; there is
-/// intentionally no foreign key to the food catalogue.
-@DataClassName('MealRow')
-@TableIndex(name: 'idx_meals_create_time', columns: {#createTime})
-class Meals extends Table {
-  IntColumn get id => integer().autoIncrement()();
-
-  TextColumn get foodName => text()();
-
-  RealColumn get kj => real()();
-
-  RealColumn get carbs => real()();
-
-  RealColumn get protein => real()();
-
-  RealColumn get fat => real()();
-
-  IntColumn get rawFoodSource => integer()();
-
-  RealColumn get netContent => real()();
-
   RealColumn get basisAmount => real()();
 
   TextColumn get unitName => text()();
+
+  DateTimeColumn get lastUsedTime => dateTime()();
+}
+
+@DataClassName('PackagedMealRow')
+@TableIndex(name: 'idx_packaged_meals_create_time', columns: {#createTime})
+class PackagedMeals extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get packagedFoodId =>
+      integer().references(PackagedFoods, #id, onDelete: KeyAction.restrict)();
 
   RealColumn get quantity => real()();
 
@@ -81,346 +69,65 @@ class Meals extends Table {
   TextColumn get note => text().nullable()();
 }
 
-@DriftDatabase(tables: [PackagedFoods, CustomFoods, Meals])
+@DataClassName('CustomMealRow')
+@TableIndex(name: 'idx_custom_meals_create_time', columns: {#createTime})
+class CustomMeals extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get customFoodId =>
+      integer().references(CustomFoods, #id, onDelete: KeyAction.restrict)();
+
+  RealColumn get netContent => real()();
+
+  DateTimeColumn get createTime => dateTime()();
+
+  TextColumn get note => text().nullable()();
+}
+
+@DataClassName('DailySummaryRow')
+class DailySummaries extends Table {
+  /// Local calendar day in `yyyy-MM-dd` form.
+  TextColumn get day => text()();
+
+  RealColumn get totalKj => real()();
+
+  RealColumn get totalCarbs => real()();
+
+  RealColumn get totalProtein => real()();
+
+  RealColumn get totalFat => real()();
+
+  IntColumn get mealCount => integer()();
+
+  @override
+  Set<Column> get primaryKey => {day};
+}
+
+@DriftDatabase(
+  tables: [
+    PackagedFoods,
+    CustomFoods,
+    PackagedMeals,
+    CustomMeals,
+    DailySummaries,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   AppDatabase.defaults() : super(_openConnection());
 
+  /// Fresh schema. This version intentionally has no upgrade path.
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async => m.createAll(),
-    onUpgrade: (m, from, to) async {
-      if (from < 2) {
-        await _migrateV1ToV2();
-      }
-      if (from < 3) {
-        await _migrateV2ToV3();
-      }
-      if (from < 4) {
-        await _migrateV3ToV4();
-      }
-      if (from < 5) {
-        await _migrateV4ToV5();
-      }
-      if (from < 6) {
-        await _migrateV5ToV6();
-      }
-    },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
-
-  /// v1 stored food foreign keys. v2 copies the food attributes onto each meal
-  /// so later food edits cannot alter history.
-  Future<void> _migrateV1ToV2() async {
-    await customStatement('''
-      CREATE TABLE diet_logs_v2 (
-        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        food_name TEXT NOT NULL,
-        kj REAL NOT NULL,
-        carbs REAL NOT NULL,
-        protein REAL NOT NULL,
-        fat REAL NOT NULL,
-        input_mode TEXT NOT NULL,
-        serving_amount REAL NOT NULL,
-        basis_amount REAL NOT NULL,
-        unit_name TEXT NOT NULL,
-        quantity REAL NOT NULL,
-        create_time INTEGER NOT NULL,
-        note TEXT
-      )
-    ''');
-
-    await customStatement('''
-      INSERT INTO diet_logs_v2 (
-        id,
-        food_name,
-        kj,
-        carbs,
-        protein,
-        fat,
-        input_mode,
-        serving_amount,
-        basis_amount,
-        unit_name,
-        quantity,
-        create_time,
-        note
-      )
-      SELECT
-        l.id,
-        COALESCE(p.name, c.name, ''),
-        COALESCE(p.kj, c.kj, 0),
-        COALESCE(p.carbs, c.carbs, 0),
-        COALESCE(p.protein, c.protein, 0),
-        COALESCE(p.fat, c.fat, 0),
-        CASE
-          WHEN l.premade_food_id IS NOT NULL THEN 'table'
-          ELSE 'direct'
-        END,
-        COALESCE(p.serving_amount, 1),
-        COALESCE(p.basis_amount, 1),
-        COALESCE(p.unit_name, '份'),
-        l.quantity,
-        l.create_time,
-        l.note
-      FROM diet_logs l
-      LEFT JOIN premade_foods p ON l.premade_food_id = p.id
-      LEFT JOIN custom_foods c ON l.custom_food_id = c.id
-    ''');
-
-    await customStatement('DROP TABLE diet_logs');
-    await customStatement('ALTER TABLE diet_logs_v2 RENAME TO diet_logs');
-    await customStatement('CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)');
-  }
-
-  /// v2 stored the source as the text 'table'/'direct'. v3 stores it as an
-  /// integer matching the FoodSource enum values.
-  Future<void> _migrateV2ToV3() async {
-    await customStatement('''
-      CREATE TABLE diet_logs_v3 (
-        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        food_name TEXT NOT NULL,
-        kj REAL NOT NULL,
-        carbs REAL NOT NULL,
-        protein REAL NOT NULL,
-        fat REAL NOT NULL,
-        raw_food_source INTEGER NOT NULL,
-        serving_amount REAL NOT NULL,
-        basis_amount REAL NOT NULL,
-        unit_name TEXT NOT NULL,
-        quantity REAL NOT NULL,
-        create_time INTEGER NOT NULL,
-        note TEXT
-      )
-    ''');
-
-    await customStatement('''
-      INSERT INTO diet_logs_v3 (
-        id,
-        food_name,
-        kj,
-        carbs,
-        protein,
-        fat,
-        raw_food_source,
-        serving_amount,
-        basis_amount,
-        unit_name,
-        quantity,
-        create_time,
-        note
-      )
-      SELECT
-        id,
-        food_name,
-        kj,
-        carbs,
-        protein,
-        fat,
-        CASE WHEN input_mode = 'table' THEN 0 ELSE 1 END,
-        serving_amount,
-        basis_amount,
-        unit_name,
-        quantity,
-        create_time,
-        note
-      FROM diet_logs
-    ''');
-
-    await customStatement('DROP TABLE diet_logs');
-    await customStatement('ALTER TABLE diet_logs_v3 RENAME TO diet_logs');
-    await customStatement('CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)');
-  }
-
-  /// v3 named the net content column `serving_amount`. v4 renames it to
-  /// `net_content` in both tables, copying every row so no data is lost.
-  Future<void> _migrateV3ToV4() async {
-    await transaction(() async {
-      await customStatement('''
-        CREATE TABLE premade_foods_v4 (
-          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          kj REAL NOT NULL,
-          carbs REAL NOT NULL,
-          protein REAL NOT NULL,
-          fat REAL NOT NULL,
-          net_content REAL NOT NULL,
-          basis_amount REAL NOT NULL,
-          unit_name TEXT NOT NULL,
-          last_used_time INTEGER NOT NULL
-        )
-      ''');
-
-      await customStatement('''
-        INSERT INTO premade_foods_v4 (
-          id,
-          name,
-          kj,
-          carbs,
-          protein,
-          fat,
-          net_content,
-          basis_amount,
-          unit_name,
-          last_used_time
-        )
-        SELECT
-          id,
-          name,
-          kj,
-          carbs,
-          protein,
-          fat,
-          serving_amount,
-          basis_amount,
-          unit_name,
-          last_used_time
-        FROM premade_foods
-      ''');
-
-      await customStatement('DROP TABLE premade_foods');
-      await customStatement('ALTER TABLE premade_foods_v4 RENAME TO premade_foods');
-      await customStatement(
-        'CREATE INDEX idx_premade_foods_last_used '
-        'ON premade_foods(last_used_time)',
-      );
-
-      await customStatement('''
-        CREATE TABLE diet_logs_v4 (
-          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-          food_name TEXT NOT NULL,
-          kj REAL NOT NULL,
-          carbs REAL NOT NULL,
-          protein REAL NOT NULL,
-          fat REAL NOT NULL,
-          raw_food_source INTEGER NOT NULL,
-          net_content REAL NOT NULL,
-          basis_amount REAL NOT NULL,
-          unit_name TEXT NOT NULL,
-          quantity REAL NOT NULL,
-          create_time INTEGER NOT NULL,
-          note TEXT
-        )
-      ''');
-
-      await customStatement('''
-        INSERT INTO diet_logs_v4 (
-          id,
-          food_name,
-          kj,
-          carbs,
-          protein,
-          fat,
-          raw_food_source,
-          net_content,
-          basis_amount,
-          unit_name,
-          quantity,
-          create_time,
-          note
-        )
-        SELECT
-          id,
-          food_name,
-          kj,
-          carbs,
-          protein,
-          fat,
-          raw_food_source,
-          serving_amount,
-          basis_amount,
-          unit_name,
-          quantity,
-          create_time,
-          note
-        FROM diet_logs
-      ''');
-
-      await customStatement('DROP TABLE diet_logs');
-      await customStatement('ALTER TABLE diet_logs_v4 RENAME TO diet_logs');
-      await customStatement('CREATE INDEX idx_diet_logs_create_time ON diet_logs(create_time)');
-    });
-  }
-
-  /// v4 stored meals in the `diet_logs` table. v5 renames it to `meals`,
-  /// copying every row so existing meal records are preserved.
-  Future<void> _migrateV4ToV5() async {
-    await transaction(() async {
-      await customStatement('''
-        CREATE TABLE meals (
-          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-          food_name TEXT NOT NULL,
-          kj REAL NOT NULL,
-          carbs REAL NOT NULL,
-          protein REAL NOT NULL,
-          fat REAL NOT NULL,
-          raw_food_source INTEGER NOT NULL,
-          net_content REAL NOT NULL,
-          basis_amount REAL NOT NULL,
-          unit_name TEXT NOT NULL,
-          quantity REAL NOT NULL,
-          create_time INTEGER NOT NULL,
-          note TEXT
-        )
-      ''');
-
-      await customStatement('''
-        INSERT INTO meals (
-          id,
-          food_name,
-          kj,
-          carbs,
-          protein,
-          fat,
-          raw_food_source,
-          net_content,
-          basis_amount,
-          unit_name,
-          quantity,
-          create_time,
-          note
-        )
-        SELECT
-          id,
-          food_name,
-          kj,
-          carbs,
-          protein,
-          fat,
-          raw_food_source,
-          net_content,
-          basis_amount,
-          unit_name,
-          quantity,
-          create_time,
-          note
-        FROM diet_logs
-      ''');
-
-      await customStatement('DROP TABLE diet_logs');
-      await customStatement('CREATE INDEX idx_meals_create_time ON meals(create_time)');
-    });
-  }
-
-  /// v5 stored packaged foods in the `premade_foods` table. v6 renames the
-  /// table to `packaged_foods` and recreates its index under the new name.
-  /// `ALTER TABLE ... RENAME TO` keeps every row, id and timestamp.
-  Future<void> _migrateV5ToV6() async {
-    await transaction(() async {
-      await customStatement('ALTER TABLE premade_foods RENAME TO packaged_foods');
-      await customStatement('DROP INDEX IF EXISTS idx_premade_foods_last_used');
-      await customStatement(
-        'CREATE INDEX idx_packaged_foods_last_used '
-        'ON packaged_foods(last_used_time)',
-      );
-    });
-  }
 }
 
 LazyDatabase _openConnection() {

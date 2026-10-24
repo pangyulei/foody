@@ -1,67 +1,96 @@
 # Agent Instructions — Foody
 
-These instructions apply to every change in this project. They are especially important for **persistence and upgrade safety**.
+These instructions apply to every change in this project.
 
-## Non-negotiable rule: never lose user data
+## Persistence policy for the current version
 
-Existing user data must survive every app upgrade. A schema change without a migration is a bug.
+This version uses a **fresh Drift schema** and intentionally has **no upgrade
+path**:
 
-Before changing anything related to persistence, ask:
-
-1. Does this change the SQLite schema, DB filename, table/column names, indexes, model fields, or settings JSON keys?
-2. Can an existing installation open its current data with the new code?
-3. Is there a migration path from the previous version, and is it tested?
-
-If the answer to (2) is "maybe" or "no", do not proceed. Add a migration first or stop and ask the user.
-
-## Important history
-
-This project previously used ObjectBox, then `sqflite`, and now uses **Drift**. Those earlier storage-layer replacements did **not** migrate existing data.
-
-The current baseline is the **Drift schema v6** in:
-
-- `lib/services/app_database.dart` — `schemaVersion = 6`
+- `lib/services/app_database.dart` — `schemaVersion = 1`, `onCreate` only
 - Database file: `foody.sqlite`
-- Tables:
-  - `packaged_foods`
-  - `custom_foods`
-  - `meals` — stored as a **snapshot** (food name, per-serving nutrition, net content metadata, `raw_food_source`); **no FK to either food table**
-- `FoodSource` enum (`lib/models/food_source.dart`): `packaged = 0`, `custom = 1`
+- There is **no `onUpgrade`**, no schema snapshots, and no generated migration
+  helpers. They were removed on explicit user request.
+- Existing installations must clear app data before running this version. Do not
+  add `onUpgrade` or migration code unless migration support is explicitly
+  reintroduced.
+
+If migration support is reintroduced later, restore the usual rules: increment
+`schemaVersion`, implement `onUpgrade` for every boundary, add schema snapshots,
+and add an upgrade test from the previous version.
+
+### Tables
+
+- `packaged_foods` — nutrition per package (`net_content`)
+- `custom_foods` — nutrition per **100 ml/g** (`basis_amount = 100`); it does
+  **not** store a consumed amount
+- `packaged_meals`:
+  - `id`, `packaged_food_id` → `packaged_foods.id` (`ON DELETE RESTRICT`),
+    `quantity`, `create_time`, `note`
+- `custom_meals`:
+  - `id`, `custom_food_id` → `custom_foods.id` (`ON DELETE RESTRICT`),
+    `net_content`, `create_time`, `note`
+- `daily_summaries`:
+  - `day` (primary key, local `yyyy-MM-dd`), `total_kj`, `total_carbs`,
+    `total_protein`, `total_fat`, `meal_count`
+  - materialized aggregate used by the History list
+
+Indexes: `idx_packaged_foods_last_used`, `idx_custom_foods_last_used`,
+`idx_packaged_meals_create_time`, `idx_custom_meals_create_time`.
+
+Other persistence:
+
 - Settings file: `foody_settings.json`
 - Settings model: `lib/models/app_settings.dart`
+- Backup format: `version: 2` (meal food references)
 
-Migrations:
+## Model structure
 
-- v1→v2: copies referenced premade/custom food attributes into `diet_logs` and removes the food foreign keys.
-- v2→v3: converts the text `input_mode` column into the integer `raw_food_source` column.
-- v3→v4: renames `serving_amount` to `net_content` in both `premade_foods` and `diet_logs` by rebuilding the tables and copying every row.
-- v4→v5: renames the `diet_logs` table to `meals` by copying every row, and recreates the `idx_meals_create_time` index.
-- v5→v6: renames `premade_foods` to `packaged_foods` in place (IDs, rows, and timestamps preserved) and recreates its index as `idx_packaged_foods_last_used`. The `FoodSource` integer values are unchanged (`packaged = 0`, `custom = 1`).
+- `Food` is an abstract base class in `lib/models/food.dart`.
+  `PackagedFood` and `CustomFood` extend it.
+- `Meal` is a sealed base class in `lib/models/meal.dart`.
+  - `PackagedMeal` stores a `PackagedFood` + `quantity`.
+  - `CustomMeal` stores a `CustomFood` + `net_content`.
+- `Meal.fromFood(...)` returns the matching subclass.
+- Packaged totals are `food value × quantity`.
+- Custom totals are `food value (per 100) × net_content / 100`.
+- Custom foods never store the amount eaten; that belongs to `CustomMeal`.
+- Editing a food updates the nutrition of every meal referencing it.
+- Deleting a food referenced by a meal is blocked:
+  - the foreign keys use `ON DELETE RESTRICT`
+  - `FoodRepository.deleteFood` throws `FoodInUseException`
+  - the food catalogue shows a message instead of deleting the food
+- Deleting a meal never deletes its food.
+- `DailySummaryRepository` maintains `daily_summaries`:
+  - meal save/delete refreshes the affected day(s)
+  - food edits refresh every day that references the food
+  - backup restore rebuilds the whole table
+  - the History list reads this table; Today and day detail still read meals
 
-See `test/migration_test.dart` and `test/schema_migration_test.dart`.
+### Forms
 
-Backups written before v6 store the packaged-food catalogue under the
-`premadeFoods` JSON key. `BackupService` writes `packagedFoods` now but still
-reads `premadeFoods`, so old backups remain restorable.
+- `lib/pages/add_food/widgets/packaged_meal_form.dart` — `PackagedMealForm`
+- `lib/pages/add_food/widgets/custom_meal_form.dart` — `CustomMealForm`
+- Shared preview: `nutrition_preview_card.dart`
+- Shared quick selector: `quick_food_selector.dart`
 
-### Food vs Meal
+## Backups
 
-- `Food` (`PackagedFood` / `CustomFood`) is a reusable quick-input catalogue.
-- A `Meal` is a historical record. `Meal.fromFood(...)` copies the food's attributes at creation time.
-- Never store a food id on `Meal`, and never read historical nutrition through the current food catalogue. Editing or deleting a food must not change past meals.
-
-Treat this baseline as a data contract. Every future version must preserve it.
+`BackupService` writes and restores **`version: 2`** backups with meal food
+references. Import rejects any other version; there is no compatibility code for
+older backup formats.
 
 ## Project map
 
-- `lib/services/app_database.dart` — Drift table definitions, schema version, migrations
+- `lib/services/app_database.dart` — Drift tables, fresh schema
 - `lib/services/app_database.g.dart` — generated by `build_runner`; **never edit manually**
-- `lib/models/packaged_food.dart` — `PackagedFood`, including `PackagedFood.fromRow(...)`
-- `lib/models/custom_food.dart` — `CustomFood`, including `CustomFood.fromRow(...)`
-- `lib/models/meal.dart` — `Meal` with a copied food snapshot, including `Meal.fromFood(...)`
-- `lib/models/food_source.dart` — `FoodSource` enum (`packaged = 0`, `custom = 1`)
-- `lib/repositories/food_repository.dart` — pure food catalogue
-- `lib/repositories/meal_repository.dart` — one-time meal records
+- `lib/models/packaged_food.dart` — `PackagedFood`
+- `lib/models/custom_food.dart` — `CustomFood`
+- `lib/models/meal.dart` — sealed `Meal`, `PackagedMeal`, `CustomMeal`
+- `lib/models/daily_summary.dart` — `DailySummary`
+- `lib/repositories/food_repository.dart` — food catalogue
+- `lib/repositories/meal_repository.dart` — meal records
+- `lib/repositories/daily_summary_repository.dart` — materialized daily totals
 - `lib/services/settings_service.dart` — JSON settings persistence
 
 ## State management
@@ -85,79 +114,55 @@ Treat this baseline as a data contract. Every future version must preserve it.
 - Today and History each own a bloc. They stay in sync through `MealRepository.changes`; do not reintroduce a shared page bloc.
 - `test/architecture_test.dart` enforces Bloc-only usage and that page/widget UI files contain no Bloc/Event/State definitions.
 
-## Mandatory workflow for any persistence change
+## Persistence change workflow (current version)
 
-1. Inspect the current schema, `schemaVersion`, migration strategy, settings model, and tests.
-2. Increase `schemaVersion` for every SQLite schema change.
-3. Implement `onUpgrade` for every version boundary.
-4. Keep `onCreate` producing exactly the same final schema as `onCreate + onUpgrade`.
-5. Preserve primary keys, foreign keys, timestamps, and relations.
-6. Add or update an upgrade test that starts from the previous schema and verifies old rows still load.
-7. Run:
+1. Update the Drift table definitions, models, repositories, and tests.
+2. Keep `onCreate` as the only schema creation path. Do **not** add `onUpgrade`.
+3. Run:
    - `dart run build_runner build` (after Drift schema/generated changes)
    - `flutter analyze`
    - `flutter test`
-8. Verify existing records are still visible in the Today and History tabs.
-9. In the final response, explicitly state what migration was added and how old data is preserved.
+4. Existing installations must clear app data for this schema. State this in the
+   final response.
+
+Do not claim an upgrade path exists when it does not.
 
 ## Drift / SQLite rules
 
-### Adding a column
-
-Use `m.addColumn`. Prefer nullable columns or columns with defaults.
-
-```dart
-@override
-MigrationStrategy get migration => MigrationStrategy(
-  onCreate: (m) async => m.createAll(),
-  onUpgrade: (m, from, to) async {
-    if (from < 2) {
-      await m.addColumn(meals, meals.someNewColumn);
-    }
-  },
-);
-```
-
-For a non-null column without a default, first add it as nullable, backfill values, then migrate to the final shape.
-
-### Renaming or removing columns / changing types
-
-Do not use destructive shortcuts.
-
-Use the safe sequence:
-
-1. Create a new table with the final schema.
-2. Copy old rows into it, preserving `id`, FKs, and timestamps.
-3. Drop the old table only after the copy succeeds.
-4. Rename the new table to the original name.
-
-Wrap multi-step migrations in a transaction.
-
-### Table / column names
-
-- Do not rename tables or columns without a migration.
-- Do not change `packaged_foods`, `custom_foods`, `meals`, or their relation columns casually.
+- `schemaVersion` stays `1` in this version.
+- Do not rename tables or columns casually:
+  - `packaged_foods`
+  - `custom_foods`
+  - `packaged_meals`
+  - `custom_meals`
 - Do not change the database filename `foody.sqlite`.
+- Keep foreign keys enabled in `beforeOpen`:
+  ```dart
+  beforeOpen: (details) async {
+    await customStatement('PRAGMA foreign_keys = ON');
+  },
+  ```
 
 ### Destructive operations
 
 Never use any of these on app startup or as a schema-change shortcut:
 
 - `deleteDatabase(...)`
-- `DROP TABLE` / `m.deleteTable(...)` without first copying data
+- dropping tables without copying data
 - deleting the DB file and recreating it
 - clearing meals or foods to "fix" a schema mismatch
 - `deleteAll()` on startup
 
-If a breaking change is unavoidable, write a data migration that maps the old rows to the new structure. If that cannot be done safely, stop and ask the user for approval before shipping a data-loss change.
+If a destructive change is unavoidable, stop and ask the user for approval.
 
 ### Foreign keys and relations
 
-- Meals are snapshots and have **no foreign keys** to `packaged_foods` or `custom_foods`.
-- Deleting a meal must not delete its pure food.
-- Editing or deleting a food must not alter existing meals.
-- Preserve IDs and timestamps when copying data.
-- Validate migrations with `PRAGMA foreign_key_check`.
+- `packaged_meals.packaged_food_id` and `custom_meals.custom_food_id` use
+  `ON DELETE RESTRICT`.
+- A referenced food cannot be deleted; `FoodRepository.deleteFood` surfaces
+  `FoodInUseException`.
+- Deleting a meal must not delete its food.
+- Editing a food intentionally changes the nutrition of its meals.
 
 ### Generated code
 
@@ -165,33 +170,12 @@ If a breaking change is unavoidable, write a data migration that maps the old ro
 - Commit the updated `app_database.g.dart`.
 - Never hand-edit generated files.
 
-## Migration testing
-
-A schema change is not complete without an upgrade test.
-
-Recommended Drift workflow:
-
-```bash
-dart run drift_dev schema dump lib/services/app_database.dart drift_schemas/
-dart run drift_dev schema generate drift_schemas/ test/generated_migrations/
-```
-
-Then write tests that:
-
-1. Open the database at the previous schema version.
-2. Insert representative rows (foods, meals, notes).
-3. Reopen it with the current `AppDatabase` so the migration runs.
-4. Assert every old row still exists with intact IDs, values, relations, and timestamps.
-5. Assert the new schema/columns work.
-
-If schema snapshots are not configured yet, add them with the first schema change. Do not merge a schema change with only "fresh install" tests.
-
 ## Settings JSON rules
 
 Settings live in `foody_settings.json` and are loaded by `SettingsService`.
 
 - `AppSettings.fromJson` must tolerate missing and unknown keys.
-- Never overwrite or reset the settings file during app startup or migration.
+- Never overwrite or reset the settings file during app startup.
 - Only write settings after an actual user change.
 - When changing settings structure:
   - Add a `version` field to the JSON if it is not already present.
@@ -208,11 +192,18 @@ load with the default of 3 without losing any other value.
 
 ## Current data invariants
 
-- A `Meal` stores a snapshot of the food's name, per-serving nutrition, net content metadata, and `raw_food_source`. It has no relation to `Food`.
-- `raw_food_source` is the persisted integer for `FoodSource` (`packaged = 0`, `custom = 1`). Use `Meal.foodSource` in app code.
-- Editing or deleting a `Food` must never alter existing `Meal`s.
-- `Meal.quantity` is the number of servings; `totalKj`, `totalCarbs`, `totalProtein`, and `totalFat` are computed from the snapshot.
-- Food nutrition is stored per single serving.
+- A `PackagedMeal` references a `PackagedFood` and stores `quantity`.
+- A `CustomMeal` references a `CustomFood` and stores `net_content`.
+- The meal type is encoded by the `Meal` subtype and its table
+  (`packaged_meals` / `custom_meals`); there is no separate source enum.
+- Editing a `Food` changes its meal history.
+- Deleting a referenced food is blocked.
+- Packaged totals are `food value × quantity`.
+- Custom totals are `food value (per 100) × net_content / 100`.
+- `CustomFood` stores nutrition per 100 ml/g and has no consumed amount.
+- `daily_summaries` must stay consistent with the meal tables: update it in the
+  same transaction as any meal/food change, and rebuild it after backup import.
+- The History list reads `daily_summaries`; Today and History detail read meals.
 - `lastUsedTime` drives the recent-food ordering.
 - Pure foods are reusable across meals.
 - Deleting a meal keeps the pure food.
@@ -227,17 +218,17 @@ load with the default of 3 without losing any other value.
 - Dropping/recreating tables to make the schema fit
 - Removing columns or entities with user data
 - Resetting the settings file
-- Shipping a schema change without an `onUpgrade` migration and upgrade test
+- Reintroducing `onUpgrade` / schema snapshots without an explicit request
 
 ## Definition of done for persistence changes
 
-- [ ] `schemaVersion` incremented
-- [ ] `onUpgrade` handles every version boundary
-- [ ] `onCreate` produces the same final schema
-- [ ] Old rows are copied/preserved with IDs and relations
-- [ ] Upgrade test passes from the previous schema version
-- [ ] Settings changes are backward compatible and tested
+- [ ] Drift tables and models are consistent
+- [ ] Repositories handle both meal types
+- [ ] Referenced foods cannot be deleted
+- [ ] `daily_summaries` stays consistent after meal/food changes and backup restore
+- [ ] Backups still restore
 - [ ] `dart run build_runner build` run (if Drift files changed)
 - [ ] `flutter analyze` clean
 - [ ] `flutter test` passing
-- [ ] Final response explains the migration and confirms no data loss
+- [ ] Final response explains that this version has no DB upgrade path and that
+      existing installs must clear data

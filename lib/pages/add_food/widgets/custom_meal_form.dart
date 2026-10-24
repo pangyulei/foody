@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_strings.dart';
 import '../../../models/custom_food.dart';
 import '../../../models/food.dart';
 import '../../../models/meal.dart';
+import '../../../models/packaged_food.dart';
 import 'nutrition_preview_card.dart';
 import 'quick_food_selector.dart';
 
-class DirectInputForm extends StatefulWidget {
+/// 自定义食品按每 100 ml/g 记录成分表数值，并单独填写实际净含量。
+class CustomMealForm extends StatefulWidget {
   final Meal? initialMeal;
   final Food? initialFood;
   final bool catalogueMode;
   final DateTime? initialDate;
   final Function(Food food, Meal meal) onSubmit;
 
-  const DirectInputForm({
+  const CustomMealForm({
     super.key,
     this.initialMeal,
     this.initialFood,
@@ -26,20 +27,24 @@ class DirectInputForm extends StatefulWidget {
   });
 
   @override
-  State<DirectInputForm> createState() => _DirectInputFormState();
+  State<CustomMealForm> createState() => _CustomMealFormState();
 }
 
-class _DirectInputFormState extends State<DirectInputForm> {
+class _CustomMealFormState extends State<CustomMealForm> {
+  /// 自定义食品的成分表固定按 100 ml/g 录入。
+  static const double _basisAmount = 100;
+
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _nameController;
+  late TextEditingController _netContentController;
   late TextEditingController _kjController;
   late TextEditingController _carbsController;
   late TextEditingController _proteinController;
   late TextEditingController _fatController;
-  late TextEditingController _quantityController;
   late TextEditingController _noteController;
 
+  String _unitName = 'g';
   late DateTime _selectedDateTime;
   Food? _selectedFood;
 
@@ -52,35 +57,26 @@ class _DirectInputFormState extends State<DirectInputForm> {
     _nameController = TextEditingController(
       text: food?.name ?? meal?.foodName ?? '',
     );
-    _kjController = TextEditingController(
-      text: food != null
-          ? _formatNumber(food.kj)
-          : (meal == null ? '' : _formatNumber(meal.kj)),
+    _netContentController = TextEditingController(
+      text: _formatNumber(_basisAmount),
     );
-    _carbsController = TextEditingController(
-      text: food != null
-          ? _formatNumber(food.carbs)
-          : (meal == null ? '' : _formatNumber(meal.carbs)),
-    );
-    _proteinController = TextEditingController(
-      text: food != null
-          ? _formatNumber(food.protein)
-          : (meal == null ? '' : _formatNumber(meal.protein)),
-    );
-    _fatController = TextEditingController(
-      text: food != null
-          ? _formatNumber(food.fat)
-          : (meal == null ? '' : _formatNumber(meal.fat)),
-    );
-    _quantityController = TextEditingController(
-      text: _formatNumber(meal?.quantity ?? 1.0),
-    );
+    _kjController = TextEditingController();
+    _carbsController = TextEditingController();
+    _proteinController = TextEditingController();
+    _fatController = TextEditingController();
     _noteController = TextEditingController(text: meal?.note ?? '');
     _selectedDateTime =
         meal?.createTime ?? widget.initialDate ?? DateTime.now();
 
+    if (meal != null) {
+      _applyMeal(meal);
+    }
+    if (food != null) {
+      _applyFood(food);
+    }
+
+    _netContentController.addListener(() => setState(() {}));
     _kjController.addListener(() => setState(() {}));
-    _quantityController.addListener(() => setState(() {}));
     _carbsController.addListener(() => setState(() {}));
     _proteinController.addListener(() => setState(() {}));
     _fatController.addListener(() => setState(() {}));
@@ -89,31 +85,69 @@ class _DirectInputFormState extends State<DirectInputForm> {
   @override
   void dispose() {
     _nameController.dispose();
+    _netContentController.dispose();
     _kjController.dispose();
     _carbsController.dispose();
     _proteinController.dispose();
     _fatController.dispose();
-    _quantityController.dispose();
     _noteController.dispose();
     super.dispose();
   }
 
   String _formatNumber(double value) {
     if (value == 0) return '0';
-    if (value == value.roundToDouble()) return value.toInt().toString();
-    return value.toString();
+    // Remove floating point noise from the per-100 <-> per-portion conversion.
+    final rounded = double.parse(value.toStringAsFixed(4));
+    if (rounded == rounded.roundToDouble()) return rounded.toInt().toString();
+    return rounded.toString();
+  }
+
+  String _validUnit(String unit) => unit == 'ml' || unit == 'g' ? unit : 'g';
+
+  /// 自定义食品直接存每 100 ml/g；包装食品换算回每 100。
+  void _applyFood(Food food) {
+    _selectedFood = food;
+    _nameController.text = food.name;
+    _unitName = _validUnit(food.unitName);
+
+    switch (food) {
+      case CustomFood():
+        _netContentController.text = _formatNumber(_basisAmount);
+        _kjController.text = _formatNumber(food.kj);
+        _carbsController.text = _formatNumber(food.carbs);
+        _proteinController.text = _formatNumber(food.protein);
+        _fatController.text = _formatNumber(food.fat);
+      case PackagedFood():
+        final netContent = food.netContent > 0 ? food.netContent : _basisAmount;
+        final basis = food.basisAmount > 0 ? food.basisAmount : _basisAmount;
+        final ratio = basis / netContent;
+        _netContentController.text = _formatNumber(netContent);
+        _kjController.text = _formatNumber(food.kj * ratio);
+        _carbsController.text = _formatNumber(food.carbs * ratio);
+        _proteinController.text = _formatNumber(food.protein);
+        _fatController.text = _formatNumber(food.fat);
+      default:
+        throw ArgumentError('Unsupported food type: ${food.runtimeType}');
+    }
+  }
+
+  /// 从历史记录还原表单。
+  void _applyMeal(Meal meal) {
+    _applyFood(meal.food);
+    switch (meal) {
+      case CustomMeal():
+        _netContentController.text = _formatNumber(meal.netContent);
+      case PackagedMeal():
+        _netContentController.text = _formatNumber(
+          meal.food.netContent * meal.quantity,
+        );
+    }
   }
 
   /// 快速导入历史食物
   void _populateFromHistory(Food food) {
     setState(() {
-      _selectedFood = food;
-      _nameController.text = food.name;
-      _kjController.text = _formatNumber(food.kj);
-      _carbsController.text = _formatNumber(food.carbs);
-      _proteinController.text = _formatNumber(food.protein);
-      _fatController.text = _formatNumber(food.fat);
-      _quantityController.text = '1';
+      _applyFood(food);
       _noteController.text = '';
     });
 
@@ -153,38 +187,33 @@ class _DirectInputFormState extends State<DirectInputForm> {
     });
   }
 
-  void _updateQuantity(int delta) {
-    final current = int.tryParse(_quantityController.text.trim()) ?? 1;
-    final updated = current + delta;
-    setState(() {
-      _quantityController.text = (updated < 1 ? 1 : updated).toString();
-    });
-  }
-
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      final unitKj = double.tryParse(_kjController.text.trim()) ?? 0.0;
-      final unitCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
-      final unitProtein =
-          double.tryParse(_proteinController.text.trim()) ?? 0.0;
-      final unitFat = double.tryParse(_fatController.text.trim()) ?? 0.0;
-      final quantity = int.tryParse(_quantityController.text.trim()) ?? 1;
+      final netContent =
+          double.tryParse(_netContentController.text.trim()) ?? _basisAmount;
+      final rawKj = double.tryParse(_kjController.text.trim()) ?? 0.0;
+      final rawCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
+      final rawProtein = double.tryParse(_proteinController.text.trim()) ?? 0.0;
+      final rawFat = double.tryParse(_fatController.text.trim()) ?? 0.0;
 
+      // 自定义食品固定存每 100 ml/g 数值。
       final existingFood = _selectedFood;
       final food = CustomFood(
         id: existingFood is CustomFood ? existingFood.id : 0,
         name: _nameController.text.trim(),
-        kj: unitKj,
-        carbs: unitCarbs,
-        protein: unitProtein,
-        fat: unitFat,
+        kj: rawKj,
+        carbs: rawCarbs,
+        protein: rawProtein,
+        fat: rawFat,
+        basisAmount: _basisAmount,
+        unitName: _unitName,
         lastUsedTime: existingFood?.lastUsedTime,
       );
 
       final meal = Meal.fromFood(
         id: widget.initialMeal?.id ?? 0,
         food: food,
-        quantity: quantity.toDouble(),
+        netContent: netContent,
         createTime: _selectedDateTime,
         note: _noteController.text.trim().isEmpty
             ? null
@@ -198,15 +227,20 @@ class _DirectInputFormState extends State<DirectInputForm> {
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
-    final unitKj = double.tryParse(_kjController.text.trim()) ?? 0.0;
-    final unitCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
-    final unitProtein = double.tryParse(_proteinController.text.trim()) ?? 0.0;
-    final unitFat = double.tryParse(_fatController.text.trim()) ?? 0.0;
-    final quantity = double.tryParse(_quantityController.text.trim()) ?? 1.0;
-    final totalKj = unitKj * quantity;
-    final totalCarbs = unitCarbs * quantity;
-    final totalProtein = unitProtein * quantity;
-    final totalFat = unitFat * quantity;
+    final unitLabel = _unitName;
+    final netContent =
+        double.tryParse(_netContentController.text.trim()) ?? 0.0;
+    final multiplier = netContent / _basisAmount;
+
+    final rawKj = double.tryParse(_kjController.text.trim()) ?? 0.0;
+    final rawCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
+    final rawProtein = double.tryParse(_proteinController.text.trim()) ?? 0.0;
+    final rawFat = double.tryParse(_fatController.text.trim()) ?? 0.0;
+
+    final totalKj = rawKj * multiplier;
+    final totalCarbs = rawCarbs * multiplier;
+    final totalProtein = rawProtein * multiplier;
+    final totalFat = rawFat * multiplier;
 
     return Form(
       key: _formKey,
@@ -233,71 +267,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
           ),
           const SizedBox(height: 16),
 
-          if (!widget.catalogueMode) ...[
-            Card(
-              elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.format_list_numbered),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        t.servings,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.remove),
-                      onPressed: () => _updateQuantity(-1),
-                    ),
-                    SizedBox(
-                      width: 72,
-                      child: TextFormField(
-                        controller: _quantityController,
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 8),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          final quantity = int.tryParse(value?.trim() ?? '');
-                          if (quantity == null || quantity < 1) {
-                            return t.quantityMinError;
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.add),
-                      onPressed: () => _updateQuantity(1),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // 营养成分数值 (每份)
+          // 1. 净含量与单位
           Card(
             elevation: 0,
             color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -310,7 +280,75 @@ class _DirectInputFormState extends State<DirectInputForm> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    t.directNutritionSection,
+                    widget.catalogueMode ? t.unitSection : t.servingSection,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment(value: 'ml', label: Text(t.unitMl)),
+                      ButtonSegment(value: 'g', label: Text(t.unitG)),
+                    ],
+                    selected: {_unitName},
+                    onSelectionChanged: (set) {
+                      setState(() {
+                        _unitName = set.first;
+                      });
+                    },
+                    style: const ButtonStyle(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  if (!widget.catalogueMode) ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _netContentController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: t.servingSize,
+                        hintText: t.servingSizeHint,
+                        suffixText: unitLabel,
+                        prefixIcon: const Icon(Icons.scale_outlined),
+                        border: const OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return t.requiredServingSize;
+                        }
+                        final amount = double.tryParse(value.trim());
+                        if (amount == null || amount <= 0) {
+                          return t.invalidNumber;
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 2. 营养成分表数值（固定每 100 ml/g）
+          Card(
+            elevation: 0,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.nutritionValuesTitle,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -318,7 +356,10 @@ class _DirectInputFormState extends State<DirectInputForm> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    t.directNutritionSubtitle,
+                    t.nutritionValuesSubtitle(
+                      _formatNumber(_basisAmount),
+                      unitLabel,
+                    ),
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -332,7 +373,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
                     ),
                     decoration: InputDecoration(
                       labelText: t.energyKj,
-                      hintText: t.energyPerServingHint,
+                      hintText: t.tableEnergyHint,
                       prefixIcon: const Icon(
                         Icons.local_fire_department_outlined,
                       ),
@@ -357,7 +398,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
                     ),
                     decoration: InputDecoration(
                       labelText: t.carbsLabel,
-                      hintText: t.carbsHint,
+                      hintText: t.tableCarbsHint,
                       prefixIcon: const Icon(Icons.grain),
                       suffixText: 'g',
                       border: const OutlineInputBorder(),
@@ -371,7 +412,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
                     ),
                     decoration: InputDecoration(
                       labelText: t.proteinLabel,
-                      hintText: t.proteinHint,
+                      hintText: t.tableProteinHint,
                       prefixIcon: const Icon(Icons.fitness_center),
                       suffixText: 'g',
                       border: const OutlineInputBorder(),
@@ -385,7 +426,7 @@ class _DirectInputFormState extends State<DirectInputForm> {
                     ),
                     decoration: InputDecoration(
                       labelText: t.fatLabel,
-                      hintText: t.fatHint,
+                      hintText: t.tableFatHint,
                       prefixIcon: const Icon(Icons.opacity),
                       suffixText: 'g',
                       border: const OutlineInputBorder(),
@@ -400,8 +441,15 @@ class _DirectInputFormState extends State<DirectInputForm> {
           NutritionPreviewCard(
             title: t.calculatedIntakeTitle,
             subtitle: widget.catalogueMode
-                ? t.directNutritionSubtitle
-                : t.directCalculatedIntakeSubtitle(_formatNumber(quantity)),
+                ? t.nutritionValuesSubtitle(
+                    _formatNumber(_basisAmount),
+                    unitLabel,
+                  )
+                : t.calculatedIntakeSubtitle(
+                    _formatNumber(netContent),
+                    unitLabel,
+                    multiplier.toStringAsFixed(2),
+                  ),
             totalKj: totalKj,
             totalCarbs: totalCarbs,
             totalProtein: totalProtein,

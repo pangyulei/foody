@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/app_strings.dart';
+import '../../repositories/food_repository.dart';
 import '../../repositories/meal_repository.dart';
 import '../../widgets/day_log_content.dart';
 import '../../widgets/error_view.dart';
@@ -20,8 +21,11 @@ class HistoryDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          HistoryDetailBloc(repository: context.read<MealRepository>(), date: date)..add(const LoadHistoryDetail()),
+      create: (context) => HistoryDetailBloc(
+        repository: context.read<MealRepository>(),
+        foodRepository: context.read<FoodRepository>(),
+        date: date,
+      )..add(const LoadHistoryDetail()),
       child: const _HistoryDetailView(),
     );
   }
@@ -36,9 +40,14 @@ class _HistoryDetailView extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return Dialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
           clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: SizedBox(
             width: 340,
             height: 440,
@@ -60,7 +69,9 @@ class _HistoryDetailView extends StatelessWidget {
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   @override
@@ -85,8 +96,10 @@ class _HistoryDetailView extends StatelessWidget {
             meals: state.meals,
             summaryTitle: t.intakeThatDay,
             emptyMessage: t.emptyHistory,
-            onDeleteLog: (id) {
-              context.read<HistoryDetailBloc>().add(DeleteHistoryDetailMeal(id));
+            onDeleteLog: (meal) {
+              context.read<HistoryDetailBloc>().add(
+                DeleteHistoryDetailMeal(meal),
+              );
             },
           );
         } else {
@@ -104,7 +117,9 @@ class _HistoryDetailView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _isToday(state.date) ? t.todayWithDate(dateText) : dateText,
+                      _isToday(state.date)
+                          ? t.todayWithDate(dateText)
+                          : dateText,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(width: 4),
@@ -129,8 +144,18 @@ class _HistoryDetailView extends StatelessWidget {
                 heroTag: 'historyDetailAddMealFab',
                 onPressed: () {
                   final now = DateTime.now();
-                  final initialDate = DateTime(state.date.year, state.date.month, state.date.day, now.hour, now.minute);
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddFoodPage(initialDate: initialDate)));
+                  final initialDate = DateTime(
+                    state.date.year,
+                    state.date.month,
+                    state.date.day,
+                    now.hour,
+                    now.minute,
+                  );
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AddFoodPage(initialDate: initialDate),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.add),
                 label: Text(t.addMeal),

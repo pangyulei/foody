@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../models/meal.dart';
+import '../../models/daily_summary.dart';
 
 abstract class HistoryState extends Equatable {
   const HistoryState();
@@ -14,8 +14,8 @@ class HistoryInitial extends HistoryState {}
 class HistoryLoading extends HistoryState {}
 
 class HistoryLoaded extends HistoryState {
-  /// One list per day, newest day first.
-  final List<List<Meal>> days;
+  /// One summary per day, newest day first.
+  final List<DailySummary> days;
 
   const HistoryLoaded({required this.days});
 

@@ -8,19 +8,28 @@ import 'package:foody/pages/history/history_state.dart';
 import 'package:foody/pages/today/today_bloc.dart';
 import 'package:foody/pages/today/today_event.dart';
 import 'package:foody/pages/today/today_state.dart';
+import 'package:foody/repositories/food_repository.dart';
 import 'package:foody/repositories/meal_repository.dart';
 import 'package:foody/services/app_database.dart';
 
 void main() {
   test('Today and History blocs refresh when diet meals change', () async {
     final database = AppDatabase(NativeDatabase.memory());
+    final foodRepository = FoodRepository(database);
     final mealRepository = MealRepository(database);
-    final todayBloc = TodayBloc(repository: mealRepository);
-    final historyBloc = HistoryBloc(repository: mealRepository);
+    final todayBloc = TodayBloc(
+      repository: mealRepository,
+      foodRepository: foodRepository,
+    );
+    final historyBloc = HistoryBloc(
+      repository: mealRepository,
+      foodRepository: foodRepository,
+    );
 
     addTearDown(() async {
       await todayBloc.close();
       await historyBloc.close();
+      await foodRepository.dispose();
       await mealRepository.dispose();
       await database.close();
     });
@@ -42,12 +51,23 @@ void main() {
       (state) => state is HistoryLoaded && state.days.isNotEmpty,
     );
 
+    final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+    await foodRepository.saveFood(food);
     final meal = Meal.fromFood(
-      food: CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5),
+      food: food,
+      netContent: 100,
       createTime: DateTime.now(),
     );
     await mealRepository.saveMeal(meal);
     await Future.wait([todayHasLog, historyHasLog]);
+
+    // Editing a referenced food must update the aggregated history summary.
+    final historyUpdated = historyBloc.stream.firstWhere(
+      (state) => state is HistoryLoaded && state.days.single.totalKj == 400,
+    );
+    food.kj = 400;
+    await foodRepository.saveFood(food);
+    await historyUpdated;
 
     final todayEmptyAgain = todayBloc.stream.firstWhere(
       (state) => state is TodayLoaded && state.meals.isEmpty,
@@ -55,7 +75,7 @@ void main() {
     final historyEmptyAgain = historyBloc.stream.firstWhere(
       (state) => state is HistoryLoaded && state.days.isEmpty,
     );
-    await mealRepository.deleteMeal(meal.id);
+    await mealRepository.deleteMeal(meal);
     await Future.wait([todayEmptyAgain, historyEmptyAgain]);
   });
 }

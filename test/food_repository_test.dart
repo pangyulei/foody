@@ -28,6 +28,8 @@ void main() {
         carbs: 1,
         protein: 6,
         fat: 5,
+        basisAmount: 100,
+        unitName: 'g',
         lastUsedTime: DateTime(2026, 10, 19, 8),
       );
       final milk = PackagedFood(
@@ -48,10 +50,19 @@ void main() {
       expect(recent.last.name, '鸡蛋');
       expect(recent.first, isA<PackagedFood>());
       expect(recent.last, isA<CustomFood>());
+      final storedEgg = recent.last as CustomFood;
+      expect(storedEgg.basisAmount, 100);
+      expect(storedEgg.unitName, 'g');
     });
 
     test('updates an existing food', () async {
-      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
       final id = await repository.saveFood(food);
 
       food
@@ -66,8 +77,12 @@ void main() {
     });
 
     test('getAllFoods returns every catalogue entry', () async {
-      await repository.saveFood(CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5));
-      await repository.saveFood(PackagedFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8));
+      await repository.saveFood(
+        CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5),
+      );
+      await repository.saveFood(
+        PackagedFood(name: '牛奶', kj: 251, carbs: 10, protein: 6, fat: 8),
+      );
 
       final foods = await repository.getAllFoods();
       expect(foods, hasLength(2));
@@ -75,23 +90,66 @@ void main() {
       expect(foods.whereType<PackagedFood>(), hasLength(1));
     });
 
-    test('deleting a food keeps existing diet meals', () async {
+    test('deleting a referenced food is blocked', () async {
       final mealRepository = MealRepository(database);
       addTearDown(mealRepository.dispose);
 
-      final food = CustomFood(name: '鸡蛋', kj: 300, carbs: 1, protein: 6, fat: 5);
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
       await repository.saveFood(food);
 
-      final meal = Meal.fromFood(food: food, createTime: DateTime(2026, 10, 19, 9));
+      final meal = Meal.fromFood(
+        food: food,
+        createTime: DateTime(2026, 10, 19, 9),
+      );
       await mealRepository.saveMeal(meal);
 
-      expect(await repository.deleteFood(food), isTrue);
-      expect(await repository.getAllFoods(), isEmpty);
+      await expectLater(
+        repository.deleteFood(food),
+        throwsA(isA<FoodInUseException>()),
+      );
+      expect(await repository.getAllFoods(), hasLength(1));
 
-      final meals = await mealRepository.getMealsForDate(DateTime(2026, 10, 19));
+      final meals = await mealRepository.getMealsForDate(
+        DateTime(2026, 10, 19),
+      );
       expect(meals, hasLength(1));
       expect(meals.single.foodName, '鸡蛋');
-      expect(meals.single.kj, 300);
+      expect(meals.single.food.kj, 300);
+    });
+
+    test('editing a food refreshes its daily summaries', () async {
+      final mealRepository = MealRepository(database);
+      addTearDown(mealRepository.dispose);
+
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+      await repository.saveFood(food);
+      await mealRepository.saveMeal(
+        Meal.fromFood(
+          food: food,
+          netContent: 100,
+          createTime: DateTime(2026, 10, 19, 9),
+        ),
+      );
+
+      food.kj = 450;
+      await repository.saveFood(food);
+
+      final summary = (await mealRepository.getDailySummaries()).single;
+      expect(summary.day, DateTime(2026, 10, 19));
+      expect(summary.totalKj, 450);
+      expect(summary.mealCount, 1);
     });
   });
 }

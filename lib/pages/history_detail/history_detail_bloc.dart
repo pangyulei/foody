@@ -2,23 +2,32 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../repositories/food_repository.dart';
 import '../../repositories/meal_repository.dart';
 import 'history_detail_event.dart';
 import 'history_detail_state.dart';
 
 class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
   final MealRepository repository;
+  final FoodRepository foodRepository;
   DateTime _date;
   StreamSubscription<void>? _changesSubscription;
+  StreamSubscription<void>? _foodChangesSubscription;
 
-  HistoryDetailBloc({required this.repository, required DateTime date})
-    : _date = _day(date),
-      super(HistoryDetailInitial(_day(date))) {
+  HistoryDetailBloc({
+    required this.repository,
+    required this.foodRepository,
+    required DateTime date,
+  }) : _date = _day(date),
+       super(HistoryDetailInitial(_day(date))) {
     on<LoadHistoryDetail>((event, emit) => _load(emit, showLoading: true));
     on<SelectHistoryDetailDate>(_onSelectDate);
     on<RefreshHistoryDetail>((event, emit) => _load(emit, showLoading: false));
     on<DeleteHistoryDetailMeal>(_onDelete);
     _changesSubscription = repository.changes.listen((_) {
+      add(const RefreshHistoryDetail());
+    });
+    _foodChangesSubscription = foodRepository.changes.listen((_) {
       add(const RefreshHistoryDetail());
     });
   }
@@ -57,7 +66,7 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
     Emitter<HistoryDetailState> emit,
   ) async {
     try {
-      await repository.deleteMeal(event.id);
+      await repository.deleteMeal(event.meal);
       // The repository change stream triggers a refresh.
     } catch (e) {
       emit(HistoryDetailError(_date, e.toString()));
@@ -67,6 +76,7 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
   @override
   Future<void> close() async {
     await _changesSubscription?.cancel();
+    await _foodChangesSubscription?.cancel();
     return super.close();
   }
 }

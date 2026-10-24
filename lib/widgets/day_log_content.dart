@@ -14,7 +14,7 @@ class DayLogContentView extends StatelessWidget {
   final String summaryTitle;
   final String emptyMessage;
   final AppSettings? goals;
-  final ValueChanged<int> onDeleteLog;
+  final ValueChanged<Meal> onDeleteLog;
   final double bottomPadding;
 
   const DayLogContentView({
@@ -51,8 +51,14 @@ class DayLogContentView extends StatelessWidget {
         // 记录标题栏
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Text(t.mealCount(meals.length), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Text(
+              t.mealCount(meals.length),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
 
@@ -64,12 +70,19 @@ class DayLogContentView extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.no_meals_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
+                  Icon(
+                    Icons.no_meals_outlined,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     emptyMessage,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 15),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.outline,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
@@ -82,9 +95,13 @@ class DayLogContentView extends StatelessWidget {
               return FoodItemTile(
                 meal: meal,
                 onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddFoodPage(initialMeal: meal)));
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AddFoodPage(initialMeal: meal),
+                    ),
+                  );
                 },
-                onDelete: () => onDeleteLog(meal.id),
+                onDelete: () => onDeleteLog(meal),
               );
             }, childCount: meals.length),
           ),

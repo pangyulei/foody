@@ -73,67 +73,86 @@ class _FoodCatalogueView extends StatelessWidget {
         icon: const Icon(Icons.add),
         label: Text(t.addCatalogueFood),
       ),
-      body: BlocBuilder<FoodCatalogueBloc, FoodCatalogueState>(
-        builder: (context, state) {
-          if (state is FoodCatalogueLoading || state is FoodCatalogueInitial) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: BlocListener<FoodCatalogueBloc, FoodCatalogueState>(
+        listenWhen: (previous, current) =>
+            current is FoodCatalogueLoaded &&
+            current.blockedDelete != null &&
+            (previous is! FoodCatalogueLoaded ||
+                previous.blockedDelete != current.blockedDelete),
+        listener: (context, state) {
+          final blocked = (state as FoodCatalogueLoaded).blockedDelete!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppStrings.of(context).foodInUseError(blocked.name),
+              ),
+            ),
+          );
+          context.read<FoodCatalogueBloc>().add(const RefreshFoodCatalogue());
+        },
+        child: BlocBuilder<FoodCatalogueBloc, FoodCatalogueState>(
+          builder: (context, state) {
+            if (state is FoodCatalogueLoading ||
+                state is FoodCatalogueInitial) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (state is FoodCatalogueError) {
-            return LoadErrorView(
-              detail: state.message,
-              onRetry: () {
-                context.read<FoodCatalogueBloc>().add(
-                  const LoadFoodCatalogue(),
+            if (state is FoodCatalogueError) {
+              return LoadErrorView(
+                detail: state.message,
+                onRetry: () {
+                  context.read<FoodCatalogueBloc>().add(
+                    const LoadFoodCatalogue(),
+                  );
+                },
+              );
+            }
+
+            if (state is! FoodCatalogueLoaded) {
+              return const SizedBox.shrink();
+            }
+
+            if (state.foods.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.restaurant_menu,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        t.noCatalogueFoods,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.only(bottom: 96),
+              itemCount: state.foods.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final food = state.foods[index];
+                return FoodCatalogueTile(
+                  food: food,
+                  onEdit: () => _openEditor(context, food: food),
+                  onDelete: () => _confirmDelete(context, food),
                 );
               },
             );
-          }
-
-          if (state is! FoodCatalogueLoaded) {
-            return const SizedBox.shrink();
-          }
-
-          if (state.foods.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.restaurant_menu,
-                      size: 48,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      t.noCatalogueFoods,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.only(bottom: 96),
-            itemCount: state.foods.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final food = state.foods[index];
-              return FoodCatalogueTile(
-                food: food,
-                onEdit: () => _openEditor(context, food: food),
-                onDelete: () => _confirmDelete(context, food),
-              );
-            },
-          );
-        },
+          },
+        ),
       ),
     );
   }

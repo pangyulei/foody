@@ -6,7 +6,8 @@ class AppStrings {
 
   const AppStrings._(this.languageCode);
 
-  factory AppStrings.of(BuildContext context) => AppStrings._(Localizations.localeOf(context).languageCode);
+  factory AppStrings.of(BuildContext context) =>
+      AppStrings._(Localizations.localeOf(context).languageCode);
 
   bool get _en => languageCode == 'en';
 
@@ -29,23 +30,31 @@ class AppStrings {
   String get protein => _en ? 'Protein' : '蛋白质';
   String get fat => _en ? 'Fat' : '脂肪';
   String get kcalUnit => _en ? 'kcal' : 'kcal (卡路里)';
-  String get emptyToday => _en ? 'No meals logged today. Tap the button below to add one.' : '今天还没有饮食记录，快点击下方按钮添加吧！';
+  String get emptyToday => _en
+      ? 'No meals logged today. Tap the button below to add one.'
+      : '今天还没有饮食记录，快点击下方按钮添加吧！';
   String get emptyHistory => _en ? 'No records for this date' : '该日期暂无记录';
   String get emptyHistoryList => _en ? 'No history yet' : '还没有历史记录';
-  String entryCount(int count) => _en ? '$count ${count == 1 ? 'item' : 'items'}' : '$count 项';
+  String entryCount(int count) =>
+      _en ? '$count ${count == 1 ? 'item' : 'items'}' : '$count 项';
   String historyDayTitle(String date) => _en ? 'History · $date' : '历史 · $date';
   String mealCount(int count) => _en ? 'Meals ($count)' : '饮食记录 ($count项)';
   String get addMeal => _en ? 'Meal' : '记一餐';
-  String goalTooltip(double grams) => _en ? 'Goal: ${grams.toStringAsFixed(0)} g' : '目标: ${grams.toStringAsFixed(0)} g';
-  String goalCaloriesTooltip(double kcal) =>
-      _en ? 'Goal: ${kcal.toStringAsFixed(0)} kcal' : '目标: ${kcal.toStringAsFixed(0)} kcal';
+  String goalTooltip(double grams) => _en
+      ? 'Goal: ${grams.toStringAsFixed(0)} g'
+      : '目标: ${grams.toStringAsFixed(0)} g';
+  String goalCaloriesTooltip(double kcal) => _en
+      ? 'Goal: ${kcal.toStringAsFixed(0)} kcal'
+      : '目标: ${kcal.toStringAsFixed(0)} kcal';
 
   // 快速添加
   String get quickAdd => _en ? 'Quick add' : '快速添加';
   String get tapToFill => _en ? 'Tap to fill' : '点击即填入';
-  String quickAddSubtitle(String date) => _en ? 'Tap to log directly to $date' : '选中后即可直接快速记录到 $date';
+  String quickAddSubtitle(String date) =>
+      _en ? 'Tap to log directly to $date' : '选中后即可直接快速记录到 $date';
   String quickAdded(String name) => _en ? 'Logged "$name"!' : '已快速记入“$name”！';
-  String get noQuickAddFoods => _en ? 'No quick-add foods yet. Log a meal first.' : '暂无快速添加食品，请先记一餐';
+  String get noQuickAddFoods =>
+      _en ? 'No quick-add foods yet. Log a meal first.' : '暂无快速添加食品，请先记一餐';
   String selectTooltip(String name) => _en ? 'Select $name' : '选择 $name';
   String get logButton => _en ? 'Log' : '记录';
 
@@ -55,7 +64,8 @@ class AppStrings {
       ? 'Carbs: ${carbs.toStringAsFixed(1)}g · Protein: ${protein.toStringAsFixed(1)}g · Fat: ${fat.toStringAsFixed(1)}g'
       : '碳水: ${carbs.toStringAsFixed(1)}g · 蛋白质: ${protein.toStringAsFixed(1)}g · 脂肪: ${fat.toStringAsFixed(1)}g';
   String get confirmDelete => _en ? 'Delete record?' : '确认删除';
-  String deleteMessage(String name) => _en ? 'Delete the record "$name"?' : '确定要删除“$name”的记录吗？';
+  String deleteMessage(String name) =>
+      _en ? 'Delete the record "$name"?' : '确定要删除“$name”的记录吗？';
   String get cancel => _en ? 'Cancel' : '取消';
   String get delete => _en ? 'Delete' : '删除';
 
@@ -69,11 +79,11 @@ class AppStrings {
 
   // 直接输入表单
   String get foodName => _en ? 'Food name' : '食品名称';
-  String get foodNameHint => _en ? 'e.g. apple, grilled chicken, milk' : '如：苹果、烤鸡胸肉、牛奶';
+  String get foodNameHint =>
+      _en ? 'e.g. apple, grilled chicken, milk' : '如：苹果、烤鸡胸肉、牛奶';
   String get requiredName => _en ? 'Please enter a food name' : '请输入食品名称';
   String get servings => _en ? 'Servings' : '食用数量';
   String get energyKj => _en ? 'Energy (kJ)' : '能量 (kJ 千焦)';
-  String get energyPerServingHint => _en ? 'Energy per serving' : '输入单份能量数值';
   String get requiredEnergy => _en ? 'Please enter energy' : '请输入能量';
   String get invalidNumber => _en ? 'Please enter a valid number' : '请输入有效数值';
   String get carbsLabel => _en ? 'Carbohydrates (g)' : '碳水化合物 (g)';
@@ -87,17 +97,23 @@ class AppStrings {
   String get recordTime => _en ? 'Recorded at' : '记录时间';
   String get saveRecord => _en ? 'Save' : '保存记录';
   String get updateRecord => _en ? 'Update' : '更新记录';
-  String get directNutritionSection => _en ? '1. Nutrition values' : '1. 营养成分数值';
   String get directNutritionSubtitle => _en ? 'per serving' : '每份';
   String get calculatedIntakeTitle => _en ? 'Calculated intake' : '实际摄入总量';
-  String calculatedIntakeSubtitle(String total, String unit, String multiplier) =>
-      _en ? 'total $total $unit, ×$multiplier' : '共 $total$unit，倍率 $multiplier x';
-  String directCalculatedIntakeSubtitle(String quantity) => _en ? '$quantity servings' : '共 $quantity 份';
-  String filledFromHistory(String name) => _en ? 'Filled from history: $name' : '已自动填入历史食品: $name';
+  String calculatedIntakeSubtitle(
+    String total,
+    String unit,
+    String multiplier,
+  ) => _en
+      ? 'total $total $unit, ×$multiplier'
+      : '共 $total$unit，倍率 $multiplier x';
+  String filledFromHistory(String name) =>
+      _en ? 'Filled from history: $name' : '已自动填入历史食品: $name';
 
   // 成分表表单
-  String filledFromHistoryTable(String name) => _en ? 'Filled from history: $name' : '已自动填入历史成分表食品: $name';
+  String filledFromHistoryTable(String name) =>
+      _en ? 'Filled from history: $name' : '已自动填入历史成分表食品: $name';
   String get servingSection => _en ? '1. Net content & unit' : '1. 净含量与单位';
+  String get unitSection => _en ? '1. Unit' : '1. 单位';
   String get unitMl => 'ml';
   String get unitG => 'g';
   String get unitServing => _en ? 'serving' : '份';
@@ -110,8 +126,10 @@ class AppStrings {
   String get nutritionValuesTitle => _en ? '2. Nutrition values' : '2. 营养成分表数值';
   String nutritionValuesSubtitle(String basis, String unit) =>
       _en ? 'per $basis $unit on the label' : '按每 $basis$unit 标注的数值输入';
-  String get tableEnergyHint => _en ? 'Energy value from the label' : '输入成分表上的能量数值';
-  String get tableCarbsHint => _en ? 'Carbohydrates on the label' : '输入成分表上的碳水化合物克数';
+  String get tableEnergyHint =>
+      _en ? 'Energy value from the label' : '输入成分表上的能量数值';
+  String get tableCarbsHint =>
+      _en ? 'Carbohydrates on the label' : '输入成分表上的碳水化合物克数';
   String get tableProteinHint => _en ? 'Protein on the label' : '输入成分表上的蛋白质克数';
   String get tableFatHint => _en ? 'Fat on the label' : '输入成分表上的脂肪克数';
   String get intakeCalories => _en ? 'Calories:' : '摄入卡路里:';
@@ -119,7 +137,8 @@ class AppStrings {
   String get shortProtein => _en ? 'Protein' : '蛋白质';
   String get shortFat => _en ? 'Fat' : '脂肪';
   String get customNote => _en ? 'Custom note (optional)' : '自定义备注 (可选)';
-  String get customNoteHint => _en ? 'Generated automatically if empty' : '如不填则自动生成';
+  String get customNoteHint =>
+      _en ? 'Generated automatically if empty' : '如不填则自动生成';
   String generatedNote(
     String total,
     String unit,
@@ -153,22 +172,31 @@ class AppStrings {
   String targetsLine(double carbs, double protein, double fat) => _en
       ? 'Carbs ${carbs.toStringAsFixed(0)} g · Protein ${protein.toStringAsFixed(0)} g · Fat ${fat.toStringAsFixed(0)} g'
       : '碳水 ${carbs.toStringAsFixed(0)} g · 蛋白质 ${protein.toStringAsFixed(0)} g · 脂肪 ${fat.toStringAsFixed(0)} g';
-  String approxKcal(double kcal) => _en ? '≈ ${kcal.toStringAsFixed(0)} kcal' : '约 ${kcal.toStringAsFixed(0)} kcal';
-  String get goalsNotSet => _en ? 'Fill in weight and all three macro factors' : '请填写体重和三大营养素倍数';
+  String approxKcal(double kcal) => _en
+      ? '≈ ${kcal.toStringAsFixed(0)} kcal'
+      : '约 ${kcal.toStringAsFixed(0)} kcal';
+  String get goalsNotSet =>
+      _en ? 'Fill in weight and all three macro factors' : '请填写体重和三大营养素倍数';
 
   // 食物管理
   String get foodCatalogue => _en ? 'Food catalogue' : '食物管理';
-  String get foodCatalogueSubtitle => _en ? 'Add, edit or delete saved foods' : '添加、编辑或删除已保存的食物';
+  String get foodCatalogueSubtitle =>
+      _en ? 'Add, edit or delete saved foods' : '添加、编辑或删除已保存的食物';
   String get addCatalogueFood => _en ? 'Add food' : '添加食物';
   String get addCatalogueFoodTitle => _en ? 'Add Food' : '添加食物';
   String get editCatalogueFoodTitle => _en ? 'Edit Food' : '编辑食物';
   String get noCatalogueFoods => _en ? 'No saved foods yet' : '还没有保存的食物';
-  String foodCatalogueCount(int count) => _en ? '$count saved ${count == 1 ? 'food' : 'foods'}' : '共 $count 种食物';
+  String foodCatalogueCount(int count) =>
+      _en ? '$count saved ${count == 1 ? 'food' : 'foods'}' : '共 $count 种食物';
   String get foodTypePackaged => _en ? 'Packaged' : '包装食品';
   String get foodTypeCustom => _en ? 'Custom' : '自定义';
   String get confirmDeleteFood => _en ? 'Delete food?' : '删除食物？';
-  String deleteFoodMessage(String name) =>
-      _en ? 'Delete "$name"? Existing meal records are kept.' : '确定要删除“$name”吗？已有的饮食记录不会受影响。';
+  String deleteFoodMessage(String name) => _en
+      ? 'Delete "$name"? Foods referenced by meal records cannot be deleted.'
+      : '确定要删除“$name”吗？被饮食记录引用的食物无法删除。';
+  String foodInUseError(String name) => _en
+      ? '"$name" is used by meal records and cannot be deleted.'
+      : '“$name”已被饮食记录引用，无法删除。';
   String get foodDeleted => _en ? 'Food deleted' : '已删除食物';
   String get foodSaved => _en ? 'Food saved' : '食物已保存';
   String get saveFood => _en ? 'Save food' : '保存食物';
@@ -176,21 +204,30 @@ class AppStrings {
 
   // 备份与恢复
   String get backupAndRestore => _en ? 'Backup & restore' : '备份与恢复';
-  String get backupAndRestoreSubtitle => _en ? 'Manage backup folder and restore data' : '管理备份文件夹与恢复数据';
+  String get backupAndRestoreSubtitle =>
+      _en ? 'Manage backup folder and restore data' : '管理备份文件夹与恢复数据';
   String get backupFolder => _en ? 'Backup folder' : '备份文件夹';
   String get backupFolderNotSet => _en ? 'No folder selected' : '未选择文件夹';
   String get chooseBackupFolder => _en ? 'Choose backup folder' : '选择备份文件夹';
   String get autoBackupRetention => _en ? 'Auto backups to keep' : '自动备份保留数量';
-  String autoBackupRetentionSubtitle(int count) =>
-      _en ? 'Keep the latest $count automatic ${count == 1 ? 'backup' : 'backups'}' : '仅保留最近 $count 份自动备份';
-  String get autoBackupRetentionRequiresFolder => _en ? 'Set a backup folder first' : '请先设置备份文件夹';
+  String autoBackupRetentionSubtitle(int count) => _en
+      ? 'Keep the latest $count automatic ${count == 1 ? 'backup' : 'backups'}'
+      : '仅保留最近 $count 份自动备份';
+  String get autoBackupRetentionRequiresFolder =>
+      _en ? 'Set a backup folder first' : '请先设置备份文件夹';
   String get backupNow => _en ? 'Backup now' : '立即备份';
-  String get backupNowSubtitle => _en ? 'Save a backup to the backup folder' : '将数据备份到备份文件夹';
+  String get backupNowSubtitle =>
+      _en ? 'Save a backup to the backup folder' : '将数据备份到备份文件夹';
   String get restoreBackup => _en ? 'Restore backup' : '恢复备份';
-  String get restoreBackupSubtitle => _en ? 'Restore data from a backup file' : '从备份文件恢复数据';
-  String get backupFolderRequired => _en ? 'Choose a backup folder first' : '请先选择备份文件夹';
-  String backupSuccess(String path) => _en ? 'Backup saved to $path' : '备份已保存到 $path';
-  String backupFailed(String message) => _en ? 'Backup failed: $message' : '备份失败：$message';
+  String get restoreBackupSubtitle =>
+      _en ? 'Restore data from a backup file' : '从备份文件恢复数据';
+  String get backupFolderRequired =>
+      _en ? 'Choose a backup folder first' : '请先选择备份文件夹';
+  String backupSuccess(String path) =>
+      _en ? 'Backup saved to $path' : '备份已保存到 $path';
+  String backupFailed(String message) =>
+      _en ? 'Backup failed: $message' : '备份失败：$message';
   String get restoreSuccess => _en ? 'Backup restored' : '备份已恢复';
-  String restoreFailed(String message) => _en ? 'Restore failed: $message' : '恢复失败：$message';
+  String restoreFailed(String message) =>
+      _en ? 'Restore failed: $message' : '恢复失败：$message';
 }

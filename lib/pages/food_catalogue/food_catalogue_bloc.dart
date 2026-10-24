@@ -40,6 +40,12 @@ class FoodCatalogueBloc extends Bloc<FoodCatalogueEvent, FoodCatalogueState> {
     try {
       await repository.deleteFood(event.food);
       // The repository change stream triggers a refresh.
+    } on FoodInUseException {
+      final current = state;
+      final foods = current is FoodCatalogueLoaded
+          ? current.foods
+          : await repository.getAllFoods();
+      emit(FoodCatalogueLoaded(foods: foods, blockedDelete: event.food));
     } catch (e) {
       emit(FoodCatalogueError(e.toString()));
     }

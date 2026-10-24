@@ -16,10 +16,13 @@ class FoodCatalogueLoading extends FoodCatalogueState {}
 class FoodCatalogueLoaded extends FoodCatalogueState {
   final List<Food> foods;
 
-  const FoodCatalogueLoaded({required this.foods});
+  /// Set when a delete was rejected because the food is used by a meal.
+  final Food? blockedDelete;
+
+  const FoodCatalogueLoaded({required this.foods, this.blockedDelete});
 
   @override
-  List<Object?> get props => [foods];
+  List<Object?> get props => [foods, blockedDelete];
 }
 
 class FoodCatalogueError extends FoodCatalogueState {

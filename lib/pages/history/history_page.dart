@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../extensions/meal_extensions.dart';
 import '../../l10n/app_strings.dart';
+import '../../repositories/food_repository.dart';
 import '../../repositories/meal_repository.dart';
 import '../../widgets/error_view.dart';
 import '../history_detail/history_detail_page.dart';
@@ -17,9 +17,10 @@ class HistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          HistoryBloc(repository: context.read<MealRepository>())
-            ..add(const LoadHistoryMeals()),
+      create: (context) => HistoryBloc(
+        repository: context.read<MealRepository>(),
+        foodRepository: context.read<FoodRepository>(),
+      )..add(const LoadHistoryMeals()),
       child: const _HistoryView(),
     );
   }
@@ -79,13 +80,13 @@ class _HistoryView extends StatelessWidget {
           itemCount: state.days.length,
           separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
-            final meals = state.days[index];
+            final summary = state.days[index];
             return DailyMealSummaryTile(
-              meals: meals,
+              summary: summary,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => HistoryDetailPage(date: meals.date),
+                    builder: (_) => HistoryDetailPage(date: summary.day),
                   ),
                 );
               },

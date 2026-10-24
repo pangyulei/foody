@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../extensions/meal_extensions.dart';
 import '../../../l10n/app_strings.dart';
-import '../../../models/meal.dart';
+import '../../../models/daily_summary.dart';
 
 class DailyMealSummaryTile extends StatelessWidget {
-  /// All meals from a single day.
-  final List<Meal> meals;
+  /// Aggregated totals for one day.
+  final DailySummary summary;
   final VoidCallback onTap;
 
   const DailyMealSummaryTile({
     super.key,
-    required this.meals,
+    required this.summary,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
-    final date = DateFormat('yyyy-MM-dd').format(meals.date);
+    final date = DateFormat('yyyy-MM-dd').format(summary.day);
 
     return Card(
       elevation: 1,
@@ -37,7 +36,7 @@ class DailyMealSummaryTile extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      _isToday(meals.date) ? t.todayWithDate(date) : date,
+                      _isToday(summary.day) ? t.todayWithDate(date) : date,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -45,7 +44,7 @@ class DailyMealSummaryTile extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${meals.totalKcal.toStringAsFixed(0)} kcal',
+                    '${summary.totalKcal.toStringAsFixed(0)} kcal',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -70,17 +69,17 @@ class DailyMealSummaryTile extends StatelessWidget {
                       children: [
                         _MacroValue(
                           label: t.shortCarbs,
-                          grams: meals.totalCarbs,
+                          grams: summary.totalCarbs,
                           color: Colors.blue,
                         ),
                         _MacroValue(
                           label: t.shortProtein,
-                          grams: meals.totalProtein,
+                          grams: summary.totalProtein,
                           color: Colors.orange,
                         ),
                         _MacroValue(
                           label: t.shortFat,
-                          grams: meals.totalFat,
+                          grams: summary.totalFat,
                           color: Colors.redAccent,
                         ),
                       ],
@@ -88,7 +87,7 @@ class DailyMealSummaryTile extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    t.entryCount(meals.mealCount),
+                    t.entryCount(summary.mealCount),
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.outline,

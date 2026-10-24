@@ -1,106 +1,127 @@
 import '../utils/energy_converter.dart';
+import 'custom_food.dart';
 import 'food.dart';
-import 'food_source.dart';
 import 'packaged_food.dart';
 
-/// A one-time meal record.
+/// A one-time meal record linked to a catalogue food.
 ///
-/// The food's attributes are copied into the meal, so editing or deleting a
-/// [Food] later never changes historical records. Food is only a reusable
-/// input/catalogue model.
-class Meal {
+/// The meal only stores which food was eaten and how much. Nutrition is read
+/// from the referenced [Food], so editing a food also updates its meal history.
+sealed class Meal {
   int id;
 
-  String foodName;
+  final DateTime createTime;
 
-  /// Per-serving energy (kJ)
-  double kj;
+  final String? note;
 
-  /// Per-serving carbohydrates (g)
-  double carbs;
+  Meal({this.id = 0, required this.createTime, this.note});
 
-  /// Per-serving protein (g)
-  double protein;
-
-  /// Per-serving fat (g)
-  double fat;
-
-  /// Raw [FoodSource] value stored in the database.
-  int rawFoodSource;
-
-  /// Net content metadata copied from a [PackagedFood]
-  double netContent;
-
-  /// Label basis metadata copied from a [PackagedFood]
-  double basisAmount;
-
-  /// Unit metadata copied from a [PackagedFood]
-  String unitName;
-
-  /// Number of servings eaten
-  double quantity;
-
-  DateTime createTime;
-
-  String? note;
-
-  Meal({
-    this.id = 0,
-    required this.foodName,
-    required this.kj,
-    required this.carbs,
-    required this.protein,
-    required this.fat,
-    required this.rawFoodSource,
-    this.netContent = 1,
-    this.basisAmount = 1,
-    this.unitName = '份',
-    this.quantity = 1.0,
-    required this.createTime,
-    this.note,
-  });
-
-  /// Creates a meal by copying the food's current attributes.
+  /// Creates a meal pointing at [food].
+  ///
+  /// For a [CustomFood], [quantity] multiplies the food's basis amount (the
+  /// quick-add portion count); [netContent] overrides the consumed amount.
   factory Meal.fromFood({
     int id = 0,
     required Food food,
     double quantity = 1.0,
+    double? netContent,
     required DateTime createTime,
     String? note,
   }) {
-    final packaged = food is PackagedFood ? food : null;
-    return Meal(
-      id: id,
-      foodName: food.name,
-      kj: food.kj,
-      carbs: food.carbs,
-      protein: food.protein,
-      fat: food.fat,
-      rawFoodSource: (packaged != null ? FoodSource.packaged : FoodSource.custom).value,
-      netContent: packaged?.netContent ?? 1,
-      basisAmount: packaged?.basisAmount ?? 1,
-      unitName: packaged?.unitName ?? '份',
-      quantity: quantity,
-      createTime: createTime,
-      note: note,
-    );
+    return switch (food) {
+      CustomFood() => CustomMeal(
+        id: id,
+        food: food,
+        netContent: netContent ?? food.basisAmount * quantity,
+        createTime: createTime,
+        note: note,
+      ),
+      PackagedFood() => PackagedMeal(
+        id: id,
+        food: food,
+        quantity: quantity,
+        createTime: createTime,
+        note: note,
+      ),
+      _ => throw ArgumentError('Unsupported food type: ${food.runtimeType}'),
+    };
   }
 
-  /// Decoded source of this meal's snapshot.
-  FoodSource get foodSource => FoodSource.fromValue(rawFoodSource);
+  Food get food;
+
+  String get foodName => food.name;
 
   /// Total energy for this meal (kJ)
-  double get totalKj => kj * quantity;
+  double get totalKj;
 
   /// Total calories for this meal (kcal)
   double get calories => EnergyConverter.kjToKcal(totalKj);
 
   /// Total carbohydrates for this meal (g)
-  double get totalCarbs => carbs * quantity;
+  double get totalCarbs;
 
   /// Total protein for this meal (g)
-  double get totalProtein => protein * quantity;
+  double get totalProtein;
 
   /// Total fat for this meal (g)
-  double get totalFat => fat * quantity;
+  double get totalFat;
+}
+
+class PackagedMeal extends Meal {
+  @override
+  final PackagedFood food;
+
+  /// Number of packages eaten.
+  final double quantity;
+
+  PackagedMeal({
+    super.id,
+    required this.food,
+    required this.quantity,
+    required super.createTime,
+    super.note,
+  });
+
+  @override
+  double get totalKj => food.kj * quantity;
+
+  @override
+  double get totalCarbs => food.carbs * quantity;
+
+  @override
+  double get totalProtein => food.protein * quantity;
+
+  @override
+  double get totalFat => food.fat * quantity;
+}
+
+class CustomMeal extends Meal {
+  @override
+  final CustomFood food;
+
+  /// Amount eaten in the food's unit.
+  final double netContent;
+
+  CustomMeal({
+    super.id,
+    required this.food,
+    required this.netContent,
+    required super.createTime,
+    super.note,
+  });
+
+  double get _multiplier =>
+      food.basisAmount > 0 ? netContent / food.basisAmount : 0;
+
+  @override
+  double get totalKj => food.kj * _multiplier;
+
+  @override
+  double get totalCarbs => food.carbs * _multiplier;
+
+  @override
+  double get totalProtein => food.protein * _multiplier;
+
+  @override
+  double get totalFat => food.fat * _multiplier;
 }
