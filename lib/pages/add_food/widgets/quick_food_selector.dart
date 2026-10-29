@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../models/food.dart';
 import '../../../repositories/food_repository.dart';
-import '../../../utils/energy_converter.dart';
 
 class QuickFoodSelector extends StatefulWidget {
   final Function(Food food) onFoodSelected;
@@ -85,28 +84,10 @@ class _QuickFoodSelectorState extends State<QuickFoodSelector> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: foods.map((food) {
-                  final kcalText = EnergyConverter.formatKcal(
-                    food.kj,
-                    fractionDigits: 0,
-                  );
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: ActionChip(
-                      avatar: CircleAvatar(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .primaryContainer,
-                        child: Text(
-                          food.name.isNotEmpty ? food.name[0] : 'F',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
-                          ),
-                        ),
-                      ),
-                      label: Text('${food.name} ($kcalText)'),
+                      label: Text(food.name),
                       tooltip: t.selectTooltip(food.name),
                       onPressed: () => widget.onFoodSelected(food),
                     ),

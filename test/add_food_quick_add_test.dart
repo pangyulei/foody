@@ -72,7 +72,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(CustomMealForm),
-        matching: find.text('鸡蛋'),
+        matching: find.widgetWithText(TextFormField, '鸡蛋'),
       ),
       findsOneWidget,
     );
@@ -85,7 +85,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(PackagedMealForm),
-        matching: find.text('牛奶'),
+        matching: find.widgetWithText(TextFormField, '牛奶'),
       ),
       findsOneWidget,
     );
