@@ -17,6 +17,17 @@ class PackagedMealForm extends StatefulWidget {
   final DateTime? initialDate;
   final Function(Food food, Meal meal) onSubmit;
 
+  /// Called when a food is picked in the quick-add selector so the page can
+  /// switch to the matching tab. Falls back to filling this form directly.
+  final ValueChanged<Food>? onQuickFoodSelected;
+
+  /// Food picked in the quick-add selector. The page switches to the matching
+  /// tab and passes it down; this form only consumes packaged foods.
+  final Food? pendingQuickFood;
+
+  /// Called after [pendingQuickFood] has been applied.
+  final VoidCallback? onQuickFoodConsumed;
+
   const PackagedMealForm({
     super.key,
     this.initialMeal,
@@ -24,6 +35,9 @@ class PackagedMealForm extends StatefulWidget {
     this.catalogueMode = false,
     this.initialDate,
     required this.onSubmit,
+    this.onQuickFoodSelected,
+    this.pendingQuickFood,
+    this.onQuickFoodConsumed,
   });
 
   @override
@@ -81,6 +95,26 @@ class _PackagedMealFormState extends State<PackagedMealForm> {
     _fatController.addListener(() => setState(() {}));
     _kjController.addListener(() => setState(() {}));
     _quantityController.addListener(() => setState(() {}));
+    _schedulePendingQuickFood(widget.pendingQuickFood);
+  }
+
+  @override
+  void didUpdateWidget(covariant PackagedMealForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pendingQuickFood != oldWidget.pendingQuickFood) {
+      _schedulePendingQuickFood(widget.pendingQuickFood);
+    }
+  }
+
+  /// Applies a quick-add selection once the form is on screen and laid out.
+  void _schedulePendingQuickFood(Food? food) {
+    // Custom foods belong to the custom tab.
+    if (food is! PackagedFood) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _populateFromHistory(food);
+      widget.onQuickFoodConsumed?.call();
+    });
   }
 
   @override
@@ -287,7 +321,10 @@ class _PackagedMealFormState extends State<PackagedMealForm> {
         children: [
           // 历史食品快速选择器
           if (!widget.catalogueMode)
-            QuickFoodSelector(onFoodSelected: _populateFromHistory),
+            QuickFoodSelector(
+              onFoodSelected:
+                  widget.onQuickFoodSelected ?? _populateFromHistory,
+            ),
 
           // 食品名称
           TextFormField(

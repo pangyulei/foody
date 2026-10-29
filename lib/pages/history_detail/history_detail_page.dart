@@ -150,6 +150,7 @@ class _HistoryDetailView extends StatelessWidget {
                     state.date.day,
                     now.hour,
                     now.minute,
+                    now.second,
                   );
                   Navigator.of(context).push(
                     MaterialPageRoute(

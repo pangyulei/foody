@@ -17,6 +17,17 @@ class CustomMealForm extends StatefulWidget {
   final DateTime? initialDate;
   final Function(Food food, Meal meal) onSubmit;
 
+  /// Called when a food is picked in the quick-add selector so the page can
+  /// switch to the matching tab. Falls back to filling this form directly.
+  final ValueChanged<Food>? onQuickFoodSelected;
+
+  /// Food picked in the quick-add selector. The page switches to the matching
+  /// tab and passes it down; this form only consumes custom foods.
+  final Food? pendingQuickFood;
+
+  /// Called after [pendingQuickFood] has been applied.
+  final VoidCallback? onQuickFoodConsumed;
+
   const CustomMealForm({
     super.key,
     this.initialMeal,
@@ -24,6 +35,9 @@ class CustomMealForm extends StatefulWidget {
     this.catalogueMode = false,
     this.initialDate,
     required this.onSubmit,
+    this.onQuickFoodSelected,
+    this.pendingQuickFood,
+    this.onQuickFoodConsumed,
   });
 
   @override
@@ -80,6 +94,26 @@ class _CustomMealFormState extends State<CustomMealForm> {
     _carbsController.addListener(() => setState(() {}));
     _proteinController.addListener(() => setState(() {}));
     _fatController.addListener(() => setState(() {}));
+    _schedulePendingQuickFood(widget.pendingQuickFood);
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomMealForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pendingQuickFood != oldWidget.pendingQuickFood) {
+      _schedulePendingQuickFood(widget.pendingQuickFood);
+    }
+  }
+
+  /// Applies a quick-add selection once the form is on screen and laid out.
+  void _schedulePendingQuickFood(Food? food) {
+    // Packaged foods belong to the packaged tab.
+    if (food is! CustomFood) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _populateFromHistory(food);
+      widget.onQuickFoodConsumed?.call();
+    });
   }
 
   @override
@@ -124,8 +158,8 @@ class _CustomMealFormState extends State<CustomMealForm> {
         _netContentController.text = _formatNumber(netContent);
         _kjController.text = _formatNumber(food.kj * ratio);
         _carbsController.text = _formatNumber(food.carbs * ratio);
-        _proteinController.text = _formatNumber(food.protein);
-        _fatController.text = _formatNumber(food.fat);
+        _proteinController.text = _formatNumber(food.protein * ratio);
+        _fatController.text = _formatNumber(food.fat * ratio);
       default:
         throw ArgumentError('Unsupported food type: ${food.runtimeType}');
     }
@@ -248,7 +282,10 @@ class _CustomMealFormState extends State<CustomMealForm> {
         padding: const EdgeInsets.all(16.0),
         children: [
           if (!widget.catalogueMode)
-            QuickFoodSelector(onFoodSelected: _populateFromHistory),
+            QuickFoodSelector(
+              onFoodSelected:
+                  widget.onQuickFoodSelected ?? _populateFromHistory,
+            ),
 
           TextFormField(
             controller: _nameController,

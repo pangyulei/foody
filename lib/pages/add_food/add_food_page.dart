@@ -39,6 +39,10 @@ class _AddFoodPageState extends State<AddFoodPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  /// Food picked in a form's quick-add selector. It is applied by the form
+  /// that owns its type once that form is the visible tab.
+  Food? _pendingQuickFood;
+
   /// Editing a saved food keeps its type, so only one form is shown.
   bool get _isEditingCatalogueFood =>
       widget.catalogueMode && widget.initialFood != null;
@@ -70,6 +74,21 @@ class _AddFoodPageState extends State<AddFoodPage>
     _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  /// A package selection goes to the packaged tab, a custom selection to the
+  /// custom tab, so the two food kinds never cross-fill.
+  void _handleQuickFoodSelected(Food food) {
+    final targetIndex = food is CustomFood ? 1 : 0;
+    setState(() => _pendingQuickFood = food);
+    if (!_isEditingCatalogueFood && _tabController.index != targetIndex) {
+      _tabController.animateTo(targetIndex);
+    }
+  }
+
+  void _clearPendingQuickFood() {
+    if (_pendingQuickFood == null) return;
+    setState(() => _pendingQuickFood = null);
   }
 
   Future<void> _handleSubmitted(Food food, Meal meal) async {
@@ -156,6 +175,9 @@ class _AddFoodPageState extends State<AddFoodPage>
         catalogueMode: widget.catalogueMode,
         initialDate: widget.initialDate,
         onSubmit: _handleSubmitted,
+        onQuickFoodSelected: _handleQuickFoodSelected,
+        pendingQuickFood: _pendingQuickFood,
+        onQuickFoodConsumed: _clearPendingQuickFood,
       ),
       CustomMealForm(
         initialMeal: widget.initialMeal,
@@ -163,6 +185,9 @@ class _AddFoodPageState extends State<AddFoodPage>
         catalogueMode: widget.catalogueMode,
         initialDate: widget.initialDate,
         onSubmit: _handleSubmitted,
+        onQuickFoodSelected: _handleQuickFoodSelected,
+        pendingQuickFood: _pendingQuickFood,
+        onQuickFoodConsumed: _clearPendingQuickFood,
       ),
     ];
 

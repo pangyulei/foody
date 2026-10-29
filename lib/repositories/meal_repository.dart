@@ -76,7 +76,17 @@ class MealRepository {
         ),
     ];
 
-    meals.sort((a, b) => b.createTime.compareTo(a.createTime));
+    // Newest first, ordered down to the second. Meals recorded within the
+    // same second fall back to the id so the order stays stable.
+    meals.sort((a, b) {
+      final byTime = b.createTime.compareTo(a.createTime);
+      if (byTime != 0) return byTime;
+      final byType = a.runtimeType.toString().compareTo(
+        b.runtimeType.toString(),
+      );
+      if (byType != 0) return byType;
+      return b.id.compareTo(a.id);
+    });
     return meals;
   }
 

@@ -314,6 +314,34 @@ void main() {
       expect(await repository.getDailySummaries(), isEmpty);
     });
 
+    test('lists meals newest first, ordered down to the second', () async {
+      final food = CustomFood(
+        name: '鸡蛋',
+        kj: 300,
+        carbs: 1,
+        protein: 6,
+        fat: 5,
+      );
+      await foodRepository.saveFood(food);
+
+      for (final time in [
+        DateTime(2026, 10, 19, 8, 0, 5),
+        DateTime(2026, 10, 19, 8, 0, 42),
+        DateTime(2026, 10, 19, 8, 0, 17),
+        DateTime(2026, 10, 19, 8, 0, 42),
+      ]) {
+        await repository.saveMeal(
+          Meal.fromFood(food: food, netContent: 100, createTime: time),
+        );
+      }
+
+      final loaded = await repository.getMealsForDate(DateTime(2026, 10, 19));
+      expect(loaded.map((meal) => meal.createTime.second), [42, 42, 17, 5]);
+
+      // Same-second meals fall back to the newest id.
+      expect(loaded[0].id, greaterThan(loaded[1].id));
+    });
+
     test('daily summary combines packaged and custom meals', () async {
       final custom = CustomFood(
         name: '鸡蛋',
