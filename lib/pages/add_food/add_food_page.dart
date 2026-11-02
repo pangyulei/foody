@@ -38,14 +38,27 @@ class AddFoodPage extends StatefulWidget {
 class _AddFoodPageState extends State<AddFoodPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final GlobalKey<PackagedMealFormState> _packagedFormKey = GlobalKey();
+  final GlobalKey<CustomMealFormState> _customFormKey = GlobalKey();
 
   /// Food picked in a form's quick-add selector. It is applied by the form
   /// that owns its type once that form is the visible tab.
   Food? _pendingQuickFood;
 
+  bool _packagedDirty = false;
+  bool _customDirty = false;
+  bool _isConfirmingPop = false;
+
   /// Editing a saved food keeps its type, so only one form is shown.
   bool get _isEditingCatalogueFood =>
       widget.catalogueMode && widget.initialFood != null;
+
+  /// Only edits are guarded; new entries are discarded like before.
+  bool get _isEditing =>
+      widget.initialMeal != null ||
+      (widget.catalogueMode && widget.initialFood != null);
+
+  bool get _isDirty => _packagedDirty || _customDirty;
 
   int get _initialTabIndex {
     if (widget.catalogueMode && widget.initialFood is CustomFood) return 1;
@@ -89,6 +102,75 @@ class _AddFoodPageState extends State<AddFoodPage>
   void _clearPendingQuickFood() {
     if (_pendingQuickFood == null) return;
     setState(() => _pendingQuickFood = null);
+  }
+
+  /// Asks the user what to do when leaving an edited form with unsaved input.
+  Future<void> _handlePopInvoked(bool didPop, Object? result) async {
+    if (didPop || _isConfirmingPop) return;
+    _isConfirmingPop = true;
+
+    final t = AppStrings.of(context);
+    final action = await showDialog<_LeaveAction>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.unsavedChangesTitle),
+        content: Text(t.unsavedChangesMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(t.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_LeaveAction.discard),
+            child: Text(t.discardChanges),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(_LeaveAction.save),
+            child: Text(t.saveChanges),
+          ),
+        ],
+      ),
+    );
+    _isConfirmingPop = false;
+
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _LeaveAction.discard:
+        Navigator.of(context).pop();
+      case _LeaveAction.save:
+        _saveDirtyForm();
+    }
+  }
+
+  /// Submits the form that holds the edits. When those edits live on the
+  /// hidden tab, switch to it first so the form is built before submitting.
+  void _saveDirtyForm() {
+    final activeIndex = _isEditingCatalogueFood
+        ? _initialTabIndex
+        : _tabController.index;
+    final targetIndex = _packagedDirty == _customDirty
+        ? activeIndex
+        : (_packagedDirty ? 0 : 1);
+
+    if (!_isEditingCatalogueFood && _tabController.index != targetIndex) {
+      _tabController.animateTo(targetIndex);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _submitFormAt(targetIndex);
+      });
+      return;
+    }
+
+    _submitFormAt(targetIndex);
+  }
+
+  void _submitFormAt(int index) {
+    if (index == 0) {
+      _packagedFormKey.currentState?.submitForm();
+    } else {
+      _customFormKey.currentState?.submitForm();
+    }
   }
 
   Future<void> _handleSubmitted(Food food, Meal meal) async {
@@ -170,6 +252,7 @@ class _AddFoodPageState extends State<AddFoodPage>
 
     final forms = <Widget>[
       PackagedMealForm(
+        key: _packagedFormKey,
         initialMeal: widget.initialMeal,
         initialFood: widget.initialFood,
         catalogueMode: widget.catalogueMode,
@@ -178,8 +261,13 @@ class _AddFoodPageState extends State<AddFoodPage>
         onQuickFoodSelected: _handleQuickFoodSelected,
         pendingQuickFood: _pendingQuickFood,
         onQuickFoodConsumed: _clearPendingQuickFood,
+        onDirtyChanged: (dirty) {
+          if (_packagedDirty == dirty) return;
+          setState(() => _packagedDirty = dirty);
+        },
       ),
       CustomMealForm(
+        key: _customFormKey,
         initialMeal: widget.initialMeal,
         initialFood: widget.initialFood,
         catalogueMode: widget.catalogueMode,
@@ -188,28 +276,38 @@ class _AddFoodPageState extends State<AddFoodPage>
         onQuickFoodSelected: _handleQuickFoodSelected,
         pendingQuickFood: _pendingQuickFood,
         onQuickFoodConsumed: _clearPendingQuickFood,
+        onDirtyChanged: (dirty) {
+          if (_customDirty == dirty) return;
+          setState(() => _customDirty = dirty);
+        },
       ),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        bottom: _isEditingCatalogueFood
-            ? null
-            : TabBar(
-                controller: _tabController,
-                tabs: [
-                  Tab(
-                    icon: const Icon(Icons.receipt_long),
-                    text: t.tabPackaged,
-                  ),
-                  Tab(icon: const Icon(Icons.edit_note), text: t.tabCustom),
-                ],
-              ),
+    return PopScope<Object?>(
+      canPop: !_isEditing || !_isDirty,
+      onPopInvokedWithResult: _handlePopInvoked,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(title),
+          bottom: _isEditingCatalogueFood
+              ? null
+              : TabBar(
+                  controller: _tabController,
+                  tabs: [
+                    Tab(
+                      icon: const Icon(Icons.receipt_long),
+                      text: t.tabPackaged,
+                    ),
+                    Tab(icon: const Icon(Icons.edit_note), text: t.tabCustom),
+                  ],
+                ),
+        ),
+        body: _isEditingCatalogueFood
+            ? forms[_initialTabIndex]
+            : TabBarView(controller: _tabController, children: forms),
       ),
-      body: _isEditingCatalogueFood
-          ? forms[_initialTabIndex]
-          : TabBarView(controller: _tabController, children: forms),
     );
   }
 }
+
+enum _LeaveAction { save, discard }

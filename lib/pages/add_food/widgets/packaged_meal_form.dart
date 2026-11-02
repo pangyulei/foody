@@ -28,6 +28,10 @@ class PackagedMealForm extends StatefulWidget {
   /// Called after [pendingQuickFood] has been applied.
   final VoidCallback? onQuickFoodConsumed;
 
+  /// Notifies the page when the form switches between clean and edited so it
+  /// can warn before discarding unsaved changes.
+  final ValueChanged<bool>? onDirtyChanged;
+
   const PackagedMealForm({
     super.key,
     this.initialMeal,
@@ -38,14 +42,20 @@ class PackagedMealForm extends StatefulWidget {
     this.onQuickFoodSelected,
     this.pendingQuickFood,
     this.onQuickFoodConsumed,
+    this.onDirtyChanged,
   });
 
   @override
-  State<PackagedMealForm> createState() => _PackagedMealFormState();
+  State<PackagedMealForm> createState() => PackagedMealFormState();
 }
 
-class _PackagedMealFormState extends State<PackagedMealForm> {
+class PackagedMealFormState extends State<PackagedMealForm>
+    with AutomaticKeepAliveClientMixin<PackagedMealForm> {
   final _formKey = GlobalKey<FormState>();
+
+  /// Tab switches must not silently drop what the user has typed.
+  @override
+  bool get wantKeepAlive => true;
 
   late TextEditingController _nameController;
   late TextEditingController _netContentController; // 净含量 (如 200)
@@ -60,6 +70,10 @@ class _PackagedMealFormState extends State<PackagedMealForm> {
   String _unitName = 'ml'; // ml / g
   late DateTime _selectedDateTime;
   Food? _selectedFood;
+
+  /// Snapshot of the form as it was opened, for unsaved-change detection.
+  late String _initialSnapshot;
+  bool _isDirty = false;
 
   @override
   void initState() {
@@ -88,14 +102,52 @@ class _PackagedMealFormState extends State<PackagedMealForm> {
       _applyFood(food);
     }
 
-    _netContentController.addListener(() => setState(() {}));
-    _unitAmountController.addListener(() => setState(() {}));
-    _carbsController.addListener(() => setState(() {}));
-    _proteinController.addListener(() => setState(() {}));
-    _fatController.addListener(() => setState(() {}));
-    _kjController.addListener(() => setState(() {}));
-    _quantityController.addListener(() => setState(() {}));
+    _initialSnapshot = _currentSnapshot();
+    for (final controller in [
+      _nameController,
+      _netContentController,
+      _unitAmountController,
+      _carbsController,
+      _proteinController,
+      _fatController,
+      _kjController,
+      _quantityController,
+      _noteController,
+    ]) {
+      controller.addListener(_onFieldChanged);
+    }
     _schedulePendingQuickFood(widget.pendingQuickFood);
+  }
+
+  /// Saves through the normal submit path, e.g. from the unsaved-changes
+  /// dialog before leaving the page.
+  void submitForm() => _submit();
+
+  /// Every value that makes up the form, used to detect unsaved edits.
+  String _currentSnapshot() => [
+    _nameController.text.trim(),
+    _netContentController.text.trim(),
+    _unitAmountController.text.trim(),
+    _kjController.text.trim(),
+    _carbsController.text.trim(),
+    _proteinController.text.trim(),
+    _fatController.text.trim(),
+    _quantityController.text.trim(),
+    _noteController.text.trim(),
+    _unitName,
+    _selectedDateTime.microsecondsSinceEpoch.toString(),
+  ].join('\u0000');
+
+  void _onFieldChanged() {
+    setState(() {});
+    _notifyDirtyChanged();
+  }
+
+  void _notifyDirtyChanged() {
+    final dirty = _currentSnapshot() != _initialSnapshot;
+    if (dirty == _isDirty) return;
+    _isDirty = dirty;
+    widget.onDirtyChanged?.call(dirty);
   }
 
   @override
@@ -223,6 +275,7 @@ class _PackagedMealFormState extends State<PackagedMealForm> {
         time.minute,
       );
     });
+    _notifyDirtyChanged();
   }
 
   void _updateQuantity(int delta) {
@@ -293,6 +346,7 @@ class _PackagedMealFormState extends State<PackagedMealForm> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final t = AppStrings.of(context);
     final unitLabel = _unitName;
     final netContent =
@@ -439,6 +493,7 @@ class _PackagedMealFormState extends State<PackagedMealForm> {
                       setState(() {
                         _unitName = set.first;
                       });
+                      _notifyDirtyChanged();
                     },
                     style: const ButtonStyle(
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,

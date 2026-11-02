@@ -76,6 +76,12 @@ class AppStrings {
   String get tabCustom => _en ? 'Custom' : '自定义';
   String get addedSuccess => _en ? 'Added!' : '添加成功！';
   String get updatedSuccess => _en ? 'Updated!' : '更新成功！';
+  String get unsavedChangesTitle => _en ? 'Unsaved changes' : '未保存的修改';
+  String get unsavedChangesMessage => _en
+      ? 'You have unsaved changes. Save them before leaving?'
+      : '修改尚未保存，离开前要保存吗？';
+  String get saveChanges => _en ? 'Save & leave' : '保存并离开';
+  String get discardChanges => _en ? 'Discard' : '放弃';
 
   // 直接输入表单
   String get foodName => _en ? 'Food name' : '食品名称';

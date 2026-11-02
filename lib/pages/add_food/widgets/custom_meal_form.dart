@@ -28,6 +28,10 @@ class CustomMealForm extends StatefulWidget {
   /// Called after [pendingQuickFood] has been applied.
   final VoidCallback? onQuickFoodConsumed;
 
+  /// Notifies the page when the form switches between clean and edited so it
+  /// can warn before discarding unsaved changes.
+  final ValueChanged<bool>? onDirtyChanged;
+
   const CustomMealForm({
     super.key,
     this.initialMeal,
@@ -38,17 +42,23 @@ class CustomMealForm extends StatefulWidget {
     this.onQuickFoodSelected,
     this.pendingQuickFood,
     this.onQuickFoodConsumed,
+    this.onDirtyChanged,
   });
 
   @override
-  State<CustomMealForm> createState() => _CustomMealFormState();
+  State<CustomMealForm> createState() => CustomMealFormState();
 }
 
-class _CustomMealFormState extends State<CustomMealForm> {
+class CustomMealFormState extends State<CustomMealForm>
+    with AutomaticKeepAliveClientMixin<CustomMealForm> {
   /// 自定义食品的成分表固定按 100 ml/g 录入。
   static const double _basisAmount = 100;
 
   final _formKey = GlobalKey<FormState>();
+
+  /// Tab switches must not silently drop what the user has typed.
+  @override
+  bool get wantKeepAlive => true;
 
   late TextEditingController _nameController;
   late TextEditingController _netContentController;
@@ -61,6 +71,10 @@ class _CustomMealFormState extends State<CustomMealForm> {
   String _unitName = 'g';
   late DateTime _selectedDateTime;
   Food? _selectedFood;
+
+  /// Snapshot of the form as it was opened, for unsaved-change detection.
+  late String _initialSnapshot;
+  bool _isDirty = false;
 
   @override
   void initState() {
@@ -89,12 +103,48 @@ class _CustomMealFormState extends State<CustomMealForm> {
       _applyFood(food);
     }
 
-    _netContentController.addListener(() => setState(() {}));
-    _kjController.addListener(() => setState(() {}));
-    _carbsController.addListener(() => setState(() {}));
-    _proteinController.addListener(() => setState(() {}));
-    _fatController.addListener(() => setState(() {}));
+    _initialSnapshot = _currentSnapshot();
+    for (final controller in [
+      _nameController,
+      _netContentController,
+      _kjController,
+      _carbsController,
+      _proteinController,
+      _fatController,
+      _noteController,
+    ]) {
+      controller.addListener(_onFieldChanged);
+    }
     _schedulePendingQuickFood(widget.pendingQuickFood);
+  }
+
+  /// Saves through the normal submit path, e.g. from the unsaved-changes
+  /// dialog before leaving the page.
+  void submitForm() => _submit();
+
+  /// Every value that makes up the form, used to detect unsaved edits.
+  String _currentSnapshot() => [
+    _nameController.text.trim(),
+    _netContentController.text.trim(),
+    _kjController.text.trim(),
+    _carbsController.text.trim(),
+    _proteinController.text.trim(),
+    _fatController.text.trim(),
+    _noteController.text.trim(),
+    _unitName,
+    _selectedDateTime.microsecondsSinceEpoch.toString(),
+  ].join('\u0000');
+
+  void _onFieldChanged() {
+    setState(() {});
+    _notifyDirtyChanged();
+  }
+
+  void _notifyDirtyChanged() {
+    final dirty = _currentSnapshot() != _initialSnapshot;
+    if (dirty == _isDirty) return;
+    _isDirty = dirty;
+    widget.onDirtyChanged?.call(dirty);
   }
 
   @override
@@ -219,6 +269,7 @@ class _CustomMealFormState extends State<CustomMealForm> {
         time.minute,
       );
     });
+    _notifyDirtyChanged();
   }
 
   void _submit() {
@@ -260,6 +311,7 @@ class _CustomMealFormState extends State<CustomMealForm> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final t = AppStrings.of(context);
     final unitLabel = _unitName;
     final netContent =
@@ -334,6 +386,7 @@ class _CustomMealFormState extends State<CustomMealForm> {
                       setState(() {
                         _unitName = set.first;
                       });
+                      _notifyDirtyChanged();
                     },
                     style: const ButtonStyle(
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
