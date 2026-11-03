@@ -2698,10 +2698,11 @@ class $$PackagedFoodsTableTableManager
               getPrefetchedDataCallback: (items) async {
                 return [
                   if (packagedMealsRefs)
-                    await $_getPrefetchedData<
+                    await $_getPrefetchedDataByColumns<
                       PackagedFoodRow,
                       $PackagedFoodsTable,
-                      PackagedMealRow
+                      PackagedMealRow,
+                      $PackagedMealsTable
                     >(
                       currentTable: table,
                       referencedTable: $$PackagedFoodsTableReferences
@@ -2712,10 +2713,8 @@ class $$PackagedFoodsTableTableManager
                             table,
                             p0,
                           ).packagedMealsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.packagedFoodId == item.id,
-                          ),
+                      currentColumn: 'id',
+                      referencedColumn: 'packaged_food_id',
                       typedResults: items,
                     ),
                 ];
@@ -3075,10 +3074,11 @@ class $$CustomFoodsTableTableManager
               getPrefetchedDataCallback: (items) async {
                 return [
                   if (customMealsRefs)
-                    await $_getPrefetchedData<
+                    await $_getPrefetchedDataByColumns<
                       CustomFoodRow,
                       $CustomFoodsTable,
-                      CustomMealRow
+                      CustomMealRow,
+                      $CustomMealsTable
                     >(
                       currentTable: table,
                       referencedTable: $$CustomFoodsTableReferences
@@ -3089,10 +3089,8 @@ class $$CustomFoodsTableTableManager
                             table,
                             p0,
                           ).customMealsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.customFoodId == item.id,
-                          ),
+                      currentColumn: 'id',
+                      referencedColumn: 'custom_food_id',
                       typedResults: items,
                     ),
                 ];

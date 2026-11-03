@@ -57,9 +57,11 @@ class PackagedMealFormState extends State<PackagedMealForm>
   @override
   bool get wantKeepAlive => true;
 
+  /// 成分表基准份量固定按 100 ml/g 输入。
+  static const double _basisAmount = 100;
+
   late TextEditingController _nameController;
   late TextEditingController _netContentController; // 净含量 (如 200)
-  late TextEditingController _unitAmountController; // 成分表基准 (如 100)
   late TextEditingController _carbsController; // 每基准份量碳水
   late TextEditingController _proteinController; // 每基准份量蛋白质
   late TextEditingController _fatController; // 每基准份量脂肪
@@ -83,7 +85,6 @@ class PackagedMealFormState extends State<PackagedMealForm>
     _selectedFood = food;
     _nameController = TextEditingController(text: meal?.foodName ?? '');
     _netContentController = TextEditingController(text: '200');
-    _unitAmountController = TextEditingController(text: '100');
     _carbsController = TextEditingController();
     _proteinController = TextEditingController();
     _fatController = TextEditingController();
@@ -106,7 +107,6 @@ class PackagedMealFormState extends State<PackagedMealForm>
     for (final controller in [
       _nameController,
       _netContentController,
-      _unitAmountController,
       _carbsController,
       _proteinController,
       _fatController,
@@ -127,7 +127,6 @@ class PackagedMealFormState extends State<PackagedMealForm>
   String _currentSnapshot() => [
     _nameController.text.trim(),
     _netContentController.text.trim(),
-    _unitAmountController.text.trim(),
     _kjController.text.trim(),
     _carbsController.text.trim(),
     _proteinController.text.trim(),
@@ -173,7 +172,6 @@ class PackagedMealFormState extends State<PackagedMealForm>
   void dispose() {
     _nameController.dispose();
     _netContentController.dispose();
-    _unitAmountController.dispose();
     _carbsController.dispose();
     _proteinController.dispose();
     _fatController.dispose();
@@ -203,17 +201,15 @@ class PackagedMealFormState extends State<PackagedMealForm>
     switch (food) {
       case CustomFood():
         _netContentController.text = _formatNumber(100);
-        _unitAmountController.text = _formatNumber(food.basisAmount);
         _kjController.text = _formatNumber(food.kj);
         _carbsController.text = _formatNumber(food.carbs);
         _proteinController.text = _formatNumber(food.protein);
         _fatController.text = _formatNumber(food.fat);
       case PackagedFood():
         final netContent = food.netContent > 0 ? food.netContent : 100.0;
-        final basis = food.basisAmount > 0 ? food.basisAmount : 100.0;
-        final ratio = basis / netContent;
+        // Stored nutrition is per package, so scale it back to per 100.
+        final ratio = _basisAmount / netContent;
         _netContentController.text = _formatNumber(netContent);
-        _unitAmountController.text = _formatNumber(basis);
         _kjController.text = _formatNumber(food.kj * ratio);
         _carbsController.text = _formatNumber(food.carbs * ratio);
         _proteinController.text = _formatNumber(food.protein * ratio);
@@ -291,14 +287,10 @@ class PackagedMealFormState extends State<PackagedMealForm>
       final t = AppStrings.of(context);
       final netContent =
           double.tryParse(_netContentController.text.trim()) ?? 100.0;
-      final basisAmount =
-          double.tryParse(_unitAmountController.text.trim()) ?? 100.0;
       final quantity = int.tryParse(_quantityController.text.trim()) ?? 1;
 
       // 每份营养 = 成分表数值 × (净含量 / 基准份量)
-      final perServingMultiplier = basisAmount > 0
-          ? netContent / basisAmount
-          : 1.0;
+      final perServingMultiplier = netContent / _basisAmount;
 
       final rawCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
       final rawProtein = double.tryParse(_proteinController.text.trim()) ?? 0.0;
@@ -314,7 +306,7 @@ class PackagedMealFormState extends State<PackagedMealForm>
         protein: rawProtein * perServingMultiplier,
         fat: rawFat * perServingMultiplier,
         netContent: netContent,
-        basisAmount: basisAmount,
+        basisAmount: _basisAmount,
         unitName: _unitName,
         lastUsedTime: existingFood?.lastUsedTime,
       );
@@ -351,12 +343,10 @@ class PackagedMealFormState extends State<PackagedMealForm>
     final unitLabel = _unitName;
     final netContent =
         double.tryParse(_netContentController.text.trim()) ?? 0.0;
-    final unitAmount =
-        double.tryParse(_unitAmountController.text.trim()) ?? 100.0;
     final quantity = double.tryParse(_quantityController.text.trim()) ?? 1.0;
 
     final totalConsumedAmount = netContent * quantity;
-    final multiplier = unitAmount > 0 ? totalConsumedAmount / unitAmount : 0.0;
+    final multiplier = totalConsumedAmount / _basisAmount;
 
     final rawCarbs = double.tryParse(_carbsController.text.trim()) ?? 0.0;
     final rawProtein = double.tryParse(_proteinController.text.trim()) ?? 0.0;
@@ -501,56 +491,26 @@ class PackagedMealFormState extends State<PackagedMealForm>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _netContentController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: t.servingSize,
-                            hintText: t.servingSizeHint,
-                            suffixText: unitLabel,
-                            border: const OutlineInputBorder(),
-                          ),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return t.requiredServingSize;
-                            }
-                            if (double.tryParse(v.trim()) == null) {
-                              return t.invalidNumber;
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _unitAmountController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: t.labelBasis,
-                            hintText: t.labelBasisHint,
-                            suffixText: unitLabel,
-                            border: const OutlineInputBorder(),
-                          ),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return t.requiredLabelBasis;
-                            }
-                            if (double.tryParse(v.trim()) == null) {
-                              return t.invalidNumber;
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
+                  TextFormField(
+                    controller: _netContentController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: t.servingSize,
+                      hintText: t.servingSizeHint,
+                      suffixText: unitLabel,
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return t.requiredServingSize;
+                      }
+                      if (double.tryParse(v.trim()) == null) {
+                        return t.invalidNumber;
+                      }
+                      return null;
+                    },
                   ),
                 ],
               ),
@@ -580,9 +540,7 @@ class PackagedMealFormState extends State<PackagedMealForm>
                   const SizedBox(height: 4),
                   Text(
                     t.nutritionValuesSubtitle(
-                      _unitAmountController.text.isEmpty
-                          ? '100'
-                          : _unitAmountController.text,
+                      _formatNumber(_basisAmount),
                       unitLabel,
                     ),
                     style: TextStyle(

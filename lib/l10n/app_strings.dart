@@ -126,9 +126,6 @@ class AppStrings {
   String get servingSize => _en ? 'Net content' : '净含量';
   String get servingSizeHint => _en ? 'e.g. 200' : '例：200';
   String get requiredServingSize => _en ? 'Please enter net content' : '请输入净含量';
-  String get labelBasis => _en ? 'Label basis' : '成分表基准份量';
-  String get labelBasisHint => _en ? 'e.g. 100' : '例：100';
-  String get requiredLabelBasis => _en ? 'Please enter label basis' : '请输入基准';
   String get nutritionValuesTitle => _en ? '2. Nutrition values' : '2. 营养成分表数值';
   String nutritionValuesSubtitle(String basis, String unit) =>
       _en ? 'per $basis $unit on the label' : '按每 $basis$unit 标注的数值输入';
