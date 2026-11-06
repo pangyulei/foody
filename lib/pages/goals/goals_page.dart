@@ -48,7 +48,9 @@ class _GoalsPageState extends State<GoalsPage> {
 
   String _formatNumber(double value) {
     if (value == 0) return '';
-    return value % 1 == 0 ? value.toInt().toString() : value.toString();
+    final rounded = double.parse(value.toStringAsFixed(2));
+    if (rounded == rounded.roundToDouble()) return rounded.toInt().toString();
+    return rounded.toString();
   }
 
   double _parse(TextEditingController controller) =>

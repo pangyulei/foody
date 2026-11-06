@@ -181,7 +181,7 @@ class CustomMealFormState extends State<CustomMealForm>
   String _formatNumber(double value) {
     if (value == 0) return '0';
     // Remove floating point noise from the per-100 <-> per-portion conversion.
-    final rounded = double.parse(value.toStringAsFixed(4));
+    final rounded = double.parse(value.toStringAsFixed(2));
     if (rounded == rounded.roundToDouble()) return rounded.toInt().toString();
     return rounded.toString();
   }

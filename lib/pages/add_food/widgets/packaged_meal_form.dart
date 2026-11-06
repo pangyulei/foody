@@ -183,8 +183,9 @@ class PackagedMealFormState extends State<PackagedMealForm>
 
   String _formatNumber(double value) {
     if (value == 0) return '0';
-    if (value == value.roundToDouble()) return value.toInt().toString();
-    return value.toString();
+    final rounded = double.parse(value.toStringAsFixed(2));
+    if (rounded == rounded.roundToDouble()) return rounded.toInt().toString();
+    return rounded.toString();
   }
 
   /// 把纯食物的每份营养换算回成分表基准值

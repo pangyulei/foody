@@ -179,8 +179,10 @@ class _QuickAddFoodTileState extends State<_QuickAddFoodTile> {
   }
 
   String _formatAmount(double value) {
-    if (value == value.roundToDouble()) return value.toInt().toString();
-    return value.toString();
+    if (value == 0) return '0';
+    final rounded = double.parse(value.toStringAsFixed(2));
+    if (rounded == rounded.roundToDouble()) return rounded.toInt().toString();
+    return rounded.toString();
   }
 
   double get _netContent =>
